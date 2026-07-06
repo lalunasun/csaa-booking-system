@@ -2,7 +2,7 @@
   <div class="classroom-page">
     <div class="classroom-toolbar">
       <div>
-        <h1>Classroom</h1>
+        <h1>Classroom for iPad</h1>
         <p>{{ selectedDate.format('dddd, MMM D, YYYY') }}</p>
       </div>
       <div class="toolbar-actions">
@@ -468,7 +468,8 @@ const roomPages = computed<RoomPage[]>(() => {
             lessonRows: visibleRoomRows
               .filter((row) => normalizeTime(row.lesson.time) === time)
               .sort((a, b) => String(a.lesson.class_name || '').localeCompare(String(b.lesson.class_name || ''))),
-          })),
+          }))
+          .filter((group) => group.lessonRows.length > 0),
       };
     });
 });
@@ -909,6 +910,7 @@ const openStudent = (student: DisplayStudent) => {
 
 .room-page-strip {
   display: flex;
+  align-items: flex-start;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
@@ -923,7 +925,7 @@ const openStudent = (student: DisplayStudent) => {
   border: 2px solid var(--room-border);
   border-radius: 8px;
   background: #fff;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .room-page-head {
@@ -953,25 +955,27 @@ const openStudent = (student: DisplayStudent) => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: calc(100vh - 250px);
-  overflow: auto;
   padding: 10px;
 }
 
 .time-slot-group {
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr);
+  align-items: stretch;
   border: 1px solid #dbe2ec;
   border-radius: 8px;
   background: #fff;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .time-slot-head {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 9px 11px;
-  border-bottom: 1px solid #dbe2ec;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 10px;
+  border-right: 1px solid #dbe2ec;
   background: #f6f8fb;
   color: #0b203b;
   font-weight: 800;
@@ -986,7 +990,7 @@ const openStudent = (student: DisplayStudent) => {
 .time-slot-lessons {
   display: grid;
   gap: 8px;
-  padding: 8px;
+  padding: 10px;
 }
 
 .empty-time-slot {
@@ -1029,21 +1033,26 @@ const openStudent = (student: DisplayStudent) => {
 }
 
 .class-students {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
   gap: 8px;
   padding: 10px;
 }
 
 .student-inline-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  flex: 1 1 260px;
+  min-width: 240px;
+  max-width: 360px;
+  gap: 8px;
   align-items: start;
   border: 1px solid rgba(91, 110, 135, 0.2);
   border-left: 5px solid #7399d5;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.78);
-  padding: 10px;
+  padding: 8px;
 }
 
 .student-inline-card.trial {
@@ -1057,8 +1066,13 @@ const openStudent = (student: DisplayStudent) => {
 
 .student-inline-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(72px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.student-inline-actions :deep(.ant-btn) {
+  padding: 0 6px;
+  font-size: 12px;
 }
 
 .empty-student-list {
@@ -1210,12 +1224,13 @@ const openStudent = (student: DisplayStudent) => {
     flex-basis: 100%;
   }
 
-  .time-slot-list {
-    max-height: 460px;
+  .time-slot-group {
+    grid-template-columns: 104px minmax(0, 1fr);
   }
 
   .student-inline-card {
-    grid-template-columns: 1fr;
+    flex-basis: 220px;
+    min-width: 210px;
   }
 
   .student-inline-actions {

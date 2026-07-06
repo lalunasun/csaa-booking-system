@@ -19,7 +19,7 @@
           </a-menu-item>
           <a-menu-item key="classroom">
             <tablet-outlined />
-            <span>Classroom</span>
+            <span>Classroom for iPad</span>
           </a-menu-item>
           <a-menu-item v-if="isAdminRole" key="order">
             <dollar-outlined/>
