@@ -21,6 +21,10 @@
             <tablet-outlined />
             <span>Classroom for iPad</span>
           </a-menu-item>
+          <a-menu-item v-if="isAdminRole" key="campCheckin">
+            <calendar-outlined/>
+            <span>Camp Check-in</span>
+          </a-menu-item>
           <a-menu-item v-if="isAdminRole" key="order">
             <dollar-outlined/>
             <span class="menu-label">

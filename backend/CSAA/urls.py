@@ -98,6 +98,14 @@ urlpatterns = [
     path('admin/classPass/booking/list', views.admin.class_pass.booking_list),
     path('admin/classPass/booking/review', views.admin.class_pass.booking_review),
     path('admin/classPass/booking/complete', views.admin.class_pass.booking_complete),
+    path('admin/campCheckin/summary', views.camp_checkin.summary),
+    path('admin/campCheckin/import', views.camp_checkin.import_enrollments),
+    path('admin/campCheckin/export', views.camp_checkin.export_attendance),
+
+    # ----------------------------Summer camp check-in/out-------------------------------------------
+    path('campCheckin/search', views.camp_checkin.search),
+    path('campCheckin/signIn', views.camp_checkin.sign_in),
+    path('campCheckin/signOut', views.camp_checkin.sign_out),
 
     # ----------------------------前台用户api-------------------------------------------
     path('index/classification/list', views.index.classification.list_api),  # 分类列表

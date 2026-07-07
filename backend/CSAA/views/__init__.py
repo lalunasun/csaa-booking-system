@@ -4,3 +4,4 @@
 # 导入所有的方法
 from CSAA.views.admin import *
 from CSAA.views.index import *
+from CSAA.views import camp_checkin

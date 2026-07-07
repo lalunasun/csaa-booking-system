@@ -1,0 +1,3 @@
+parent_username,parent_first_name,parent_last_name,phone,email,student_first_name,student_last_name,age,gender,medical_notes,camp_week_code,camp_week_name,start_date,end_date,default_room,capacity,status,payment_status,notes
+parent_001,Demo,Parent,4165550101,parent001@example.com,Emma,Chen,7,F,No peanuts,2026-CAMP-W1,2026 Summer Camp Week 1,2026-07-06,2026-07-10,Room1,12,active,paid,Example registration
+parent_002,Alex,Chen,4165550102,alex.chen@example.com,Liam,Wang,8,M,,2026-CAMP-W1,2026 Summer Camp Week 1,2026-07-06,2026-07-10,Room2,12,active,paid,

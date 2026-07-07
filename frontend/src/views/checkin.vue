@@ -1,0 +1,502 @@
+<template>
+  <main class="checkin-page">
+    <section class="checkin-shell">
+      <header class="checkin-header">
+        <div>
+          <p class="eyebrow">Summer Camp</p>
+          <h1>Check-in / Check-out</h1>
+          <p>{{ todayLabel }} · 9:00 AM - 4:00 PM</p>
+        </div>
+      </header>
+
+      <section v-if="completion.visible" class="completion-panel">
+        <a-result
+          status="success"
+          :title="completion.title"
+          :sub-title="completion.subtitle"
+        >
+          <template v-if="completion.showMap" #icon>
+            <span class="result-icon">OK</span>
+          </template>
+          <template #extra>
+            <div v-if="completion.showMap" class="camp-map" aria-label="Classroom map">
+              <div class="map-front">Front Desk</div>
+              <div class="map-hall">Main hallway</div>
+              <div class="map-grid">
+                <div
+                  v-for="room in mapRooms"
+                  :key="room"
+                  class="map-room"
+                  :class="{ active: normalizeRoom(room) === normalizeRoom(completion.roomName) }"
+                >
+                  {{ room }}
+                </div>
+              </div>
+            </div>
+            <a-button size="large" type="primary" @click="resetKiosk">
+              Next student
+            </a-button>
+          </template>
+        </a-result>
+      </section>
+
+      <section v-else class="search-panel">
+        <a-input
+          v-model:value="firstName"
+          size="large"
+          placeholder="First name"
+          @pressEnter="searchStudent"
+        />
+        <a-input
+          v-model:value="lastName"
+          size="large"
+          placeholder="Last name"
+          @pressEnter="searchStudent"
+        />
+        <a-button size="large" type="primary" :loading="loading" @click="searchStudent">
+          Search
+        </a-button>
+      </section>
+
+      <a-alert
+        v-if="!completion.visible && notice"
+        class="notice"
+        :type="noticeType"
+        :message="notice"
+        show-icon
+      />
+
+      <a-spin v-if="!completion.visible" :spinning="loading">
+        <section v-if="students.length" class="result-list">
+          <article v-for="student in students" :key="student.student_id" class="student-card">
+            <div class="student-main">
+              <div>
+                <p class="student-label">Student</p>
+                <h2>{{ student.student_name }}</h2>
+                <p class="meta">
+                  {{ student.term_title || 'Camp term' }} · {{ student.room_name || 'No room' }}
+                </p>
+              </div>
+              <a-tag :color="statusColor(student.attendance.status)">
+                {{ statusText(student.attendance.status) }}
+              </a-tag>
+            </div>
+
+            <div class="schedule-list">
+              <div v-for="item in student.schedule_items" :key="item.order_id" class="schedule-row">
+                <strong>{{ item.class_name || 'Camp activity' }}</strong>
+                <span>{{ item.time || '9:00-16:00' }}</span>
+                <span>{{ item.room_name || student.room_name || 'No room' }}</span>
+              </div>
+            </div>
+
+            <div class="time-status">
+              <span v-if="student.attendance.sign_in_time">
+                Signed in {{ formatTime(student.attendance.sign_in_time) }}
+              </span>
+              <span v-if="student.attendance.sign_out_time">
+                Signed out {{ formatTime(student.attendance.sign_out_time) }}
+              </span>
+              <span v-if="!student.attendance.sign_in_time && !student.attendance.sign_out_time">
+                Not signed in yet
+              </span>
+            </div>
+
+            <div class="actions">
+              <a-button
+                size="large"
+                type="primary"
+                :disabled="!!student.attendance.sign_in_time"
+                :loading="actionLoadingId === `in-${student.student_id}`"
+                @click="signIn(student)"
+              >
+                Sign in
+              </a-button>
+              <a-button
+                size="large"
+                :disabled="!student.attendance.sign_in_time || !!student.attendance.sign_out_time"
+                :loading="actionLoadingId === `out-${student.student_id}`"
+                @click="signOut(student)"
+              >
+                Sign out
+              </a-button>
+            </div>
+          </article>
+        </section>
+
+        <a-empty
+          v-else-if="searched"
+          class="empty-state"
+          description="No camp schedule found for this student today"
+        />
+      </a-spin>
+    </section>
+  </main>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from 'vue';
+import dayjs from 'dayjs';
+import { message } from 'ant-design-vue';
+import { searchApi, signInApi, signOutApi } from '/@/api/camp-checkin';
+
+const firstName = ref('');
+const lastName = ref('');
+const loading = ref(false);
+const searched = ref(false);
+const students = ref<any[]>([]);
+const notice = ref('');
+const noticeType = ref<'success' | 'info' | 'warning' | 'error'>('info');
+const actionLoadingId = ref('');
+const completion = ref({
+  visible: false,
+  title: '',
+  subtitle: '',
+  roomName: '',
+  showMap: false,
+});
+const mapRooms = ['Room1', 'Room2', 'Room3', 'Room4', 'Room5', 'Room6', 'Room7', 'Room8'];
+let resetTimer: ReturnType<typeof window.setTimeout> | null = null;
+const today = dayjs().format('YYYY-MM-DD');
+const todayLabel = computed(() => dayjs(today).format('dddd, MMM D, YYYY'));
+
+const searchStudent = async () => {
+  if (!firstName.value.trim() && !lastName.value.trim()) {
+    message.warning('Please enter a student name');
+    return;
+  }
+  loading.value = true;
+  searched.value = true;
+  notice.value = '';
+  try {
+    const res = await searchApi({
+      first_name: firstName.value.trim(),
+      last_name: lastName.value.trim(),
+      date: today,
+    });
+    students.value = res.data?.students || [];
+    if (students.value.length > 1) {
+      notice.value = 'Multiple students found. Please confirm the student before signing in or out.';
+      noticeType.value = 'warning';
+    }
+  } catch (error: any) {
+    notice.value = error?.msg || 'Search failed';
+    noticeType.value = 'error';
+  } finally {
+    loading.value = false;
+  }
+};
+
+const resetKiosk = () => {
+  if (resetTimer) {
+    window.clearTimeout(resetTimer);
+    resetTimer = null;
+  }
+  firstName.value = '';
+  lastName.value = '';
+  searched.value = false;
+  students.value = [];
+  notice.value = '';
+  actionLoadingId.value = '';
+  completion.value = {
+    visible: false,
+    title: '',
+    subtitle: '',
+    roomName: '',
+    showMap: false,
+  };
+};
+
+const completeAction = (title: string, subtitle: string, options: { roomName?: string; showMap?: boolean } = {}) => {
+  students.value = [];
+  searched.value = false;
+  notice.value = '';
+  completion.value = {
+    visible: true,
+    title,
+    subtitle,
+    roomName: options.roomName || '',
+    showMap: !!options.showMap,
+  };
+  if (resetTimer) {
+    window.clearTimeout(resetTimer);
+  }
+  resetTimer = window.setTimeout(resetKiosk, 2500);
+};
+
+const signIn = async (student: any) => {
+  actionLoadingId.value = `in-${student.student_id}`;
+  try {
+    const res = await signInApi({ student_id: student.student_id, date: today });
+    const timeText = res.data?.sign_in_time ? formatTime(res.data.sign_in_time) : dayjs().format('h:mm A');
+    completeAction(
+      `${student.student_name} signed in`,
+      `Room: ${student.room_name || 'No room'} - ${timeText}`,
+      { roomName: student.room_name, showMap: true }
+    );
+  } catch (error: any) {
+    notice.value = error?.msg || 'Sign in failed';
+    noticeType.value = 'error';
+  } finally {
+    actionLoadingId.value = '';
+  }
+};
+
+const signOut = async (student: any) => {
+  actionLoadingId.value = `out-${student.student_id}`;
+  try {
+    const res = await signOutApi({ student_id: student.student_id, date: today });
+    const timeText = res.data?.sign_out_time ? formatTime(res.data.sign_out_time) : dayjs().format('h:mm A');
+    completeAction(
+      `${student.student_name} signed out`,
+      `Pickup recorded at ${timeText}`
+    );
+  } catch (error: any) {
+    notice.value = error?.msg || 'Sign out failed';
+    noticeType.value = 'error';
+  } finally {
+    actionLoadingId.value = '';
+  }
+};
+
+const statusText = (status: string) => ({
+  not_arrived: 'Not arrived',
+  signed_in: 'Signed in',
+  late: 'Late',
+  signed_out: 'Signed out',
+  early_pickup: 'Early pickup',
+  absent: 'Absent',
+}[status] || status);
+
+const statusColor = (status: string) => ({
+  not_arrived: 'default',
+  signed_in: 'blue',
+  late: 'orange',
+  signed_out: 'green',
+  early_pickup: 'gold',
+  absent: 'red',
+}[status] || 'default');
+
+const formatTime = (value: string) => dayjs(value).format('h:mm A');
+const normalizeRoom = (value: string) => String(value || '').replace(/\s+/g, '').toLowerCase();
+</script>
+
+<style scoped lang="less">
+.checkin-page {
+  min-height: 100vh;
+  background: #eef3f8;
+  padding: 28px;
+  color: #10233f;
+}
+
+.checkin-shell {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.checkin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: #2d6cdf;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.checkin-header h1 {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.1;
+}
+
+.checkin-header p:last-child {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 18px;
+}
+
+.search-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 150px;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #d8e1ec;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.completion-panel {
+  border: 1px solid #d8e1ec;
+  border-radius: 8px;
+  background: #fff;
+  padding: 18px;
+}
+
+.result-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #1f8f4d;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.camp-map {
+  width: min(720px, 100%);
+  margin: 0 auto 22px;
+  padding: 16px;
+  border: 1px solid #d8e1ec;
+  border-radius: 8px;
+  background: #f7fafc;
+}
+
+.map-front {
+  width: 180px;
+  margin: 0 auto;
+  padding: 10px 12px;
+  border: 2px solid #2d6cdf;
+  border-radius: 8px;
+  background: #eaf2ff;
+  color: #174ea6;
+  font-weight: 900;
+  text-align: center;
+}
+
+.map-hall {
+  width: 3px;
+  height: 34px;
+  margin: 0 auto;
+  color: transparent;
+  background: #94a3b8;
+}
+
+.map-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.map-room {
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.map-room.active {
+  border-color: #0f9f6e;
+  background: #dff8ec;
+  color: #08734f;
+  box-shadow: 0 0 0 4px rgba(15, 159, 110, 0.16);
+}
+
+.notice {
+  margin: 14px 0;
+}
+
+.result-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.student-card {
+  border: 1px solid #d8e1ec;
+  border-radius: 8px;
+  background: #fff;
+  padding: 18px;
+}
+
+.student-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.student-label {
+  margin: 0 0 4px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.student-card h2 {
+  margin: 0;
+  font-size: 30px;
+}
+
+.meta {
+  margin: 8px 0 0;
+  color: #53637a;
+  font-size: 17px;
+}
+
+.schedule-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.schedule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) 150px 120px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f6f8fb;
+}
+
+.time-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  color: #475569;
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.actions :deep(.ant-btn) {
+  min-width: 150px;
+}
+
+.empty-state {
+  margin-top: 40px;
+}
+
+@media (max-width: 720px) {
+  .checkin-page {
+    padding: 18px;
+  }
+
+  .checkin-header h1 {
+    font-size: 32px;
+  }
+
+  .search-panel,
+  .schedule-row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

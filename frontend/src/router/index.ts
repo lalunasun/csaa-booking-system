@@ -4,7 +4,7 @@ import root from './root';
 import { ADMIN_USER_ROLE, ADMIN_USER_TOKEN, USER_TOKEN } from '/@/store/constants'
 
 // 路由权限白名单
-const allowList = ['adminLogin', 'login', 'register', 'portal', 'mobile', 'search', 'detail', '403', '404']
+const allowList = ['adminLogin', 'login', 'register', 'portal', 'mobile', 'checkin', 'search', 'detail', '403', '404']
 // 前台登录地址
 const loginRoutePath = '/index/login'
 // 后台登录地址
@@ -61,6 +61,10 @@ router.beforeEach(async (to, from, next) => {
       }
     }
     // next()
+  }
+
+  if (!to.path.startsWith('/admin') && !to.path.startsWith('/index')) {
+    next()
   }
 
 });

@@ -1,0 +1,515 @@
+import datetime
+import csv
+import io
+
+from django.http import HttpResponse
+from django.db import transaction
+from django.db.models import Q
+from django.utils import timezone
+from django.utils.dateparse import parse_date
+from rest_framework.decorators import api_view, authentication_classes
+
+from CSAA.auth.authentication import AdminTokenAuthtication
+from CSAA.handler import APIResponse
+from CSAA.models import CampAttendance, CampEnrollment, Child, Order, Tag, Term, User
+
+
+CAMP_START_HOUR = 9
+CAMP_END_HOUR = 16
+
+
+def _client_ip(request):
+    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if forwarded_for:
+        return forwarded_for.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', '')
+
+
+def _parse_date(value):
+    if not value:
+        return datetime.date.today()
+    try:
+        return datetime.date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _day_code(target_date):
+    return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][target_date.weekday()]
+
+
+def _scheduled_orders(target_date):
+    orders = Order.objects.filter(
+        child__isnull=False,
+        thing__isnull=False,
+        thing__status='0',
+        thing__day=_day_code(target_date),
+        term__isnull=False,
+        expect_time__date__lte=target_date,
+        return_time__date__gte=target_date,
+        status=6,
+    ).select_related(
+        'child',
+        'child__parent',
+        'term',
+        'thing',
+        'thing__time',
+        'thing__tag',
+    ).order_by('thing__tag__title', 'thing__time__time', 'child__name')
+
+    camp_orders = orders.filter(term__title__icontains='camp')
+    return camp_orders if camp_orders.exists() else orders
+
+
+def _camp_enrollments(target_date):
+    return CampEnrollment.objects.filter(
+        status='active',
+        term__expect_time__date__lte=target_date,
+        term__return_time__date__gte=target_date,
+    ).select_related(
+        'student',
+        'parent',
+        'term',
+        'default_room',
+    ).order_by('default_room__title', 'student__name')
+
+
+def _attendance_map(target_date, child_ids):
+    records = CampAttendance.objects.filter(
+        attendance_date=target_date,
+        student_id__in=child_ids,
+    )
+    return {record.student_id: record for record in records}
+
+
+def _serialize_record(record):
+    if not record:
+        return {
+            'status': 'not_arrived',
+            'sign_in_time': None,
+            'sign_out_time': None,
+            'note': '',
+        }
+    return {
+        'id': record.id,
+        'status': record.status,
+        'sign_in_time': record.sign_in_time.isoformat() if record.sign_in_time else None,
+        'sign_out_time': record.sign_out_time.isoformat() if record.sign_out_time else None,
+        'note': record.note,
+    }
+
+
+def _student_items(target_date):
+    enrollments = list(_camp_enrollments(target_date))
+    if enrollments:
+        child_ids = [enrollment.student_id for enrollment in enrollments]
+        records = _attendance_map(target_date, child_ids)
+        items = []
+        for enrollment in enrollments:
+            student = enrollment.student
+            parent = enrollment.parent or student.parent
+            room = enrollment.default_room
+            items.append({
+                'student_id': student.id,
+                'student_name': student.name,
+                'age': student.age,
+                'parent_name': (parent.nickname or parent.username) if parent else '',
+                'parent_username': parent.username if parent else '',
+                'parent_phone': parent.mobile if parent else '',
+                'date': target_date.isoformat(),
+                'term_id': enrollment.term_id,
+                'term_title': enrollment.term.title if enrollment.term else '',
+                'room_id': room.id if room else None,
+                'room_name': room.title if room else '',
+                'attendance': _serialize_record(records.get(student.id)),
+                'schedule_items': [{
+                    'enrollment_id': enrollment.id,
+                    'class_id': None,
+                    'class_name': enrollment.term.title if enrollment.term else 'Summer Camp',
+                    'time': '09:00-16:00',
+                    'room_id': room.id if room else None,
+                    'room_name': room.title if room else '',
+                    'term_id': enrollment.term_id,
+                    'term_title': enrollment.term.title if enrollment.term else '',
+                }],
+            })
+        return sorted(items, key=lambda value: (value['room_name'], value['student_name']))
+
+    orders = list(_scheduled_orders(target_date))
+    child_ids = list({order.child_id for order in orders if order.child_id})
+    records = _attendance_map(target_date, child_ids)
+
+    grouped = {}
+    for order in orders:
+        if not order.child_id:
+            continue
+        child = order.child
+        parent = child.parent
+        item = grouped.setdefault(child.id, {
+            'student_id': child.id,
+            'student_name': child.name,
+            'age': child.age,
+            'parent_name': (parent.nickname or parent.username) if parent else '',
+            'parent_username': parent.username if parent else '',
+            'parent_phone': parent.mobile if parent else '',
+            'date': target_date.isoformat(),
+            'term_id': order.term_id,
+            'term_title': order.term.title if order.term else '',
+            'room_id': order.thing.tag_id if order.thing else None,
+            'room_name': order.thing.tag.title if order.thing and order.thing.tag else '',
+            'attendance': _serialize_record(records.get(child.id)),
+            'schedule_items': [],
+        })
+        item['schedule_items'].append({
+            'order_id': order.id,
+            'class_id': order.thing_id,
+            'class_name': order.thing.title if order.thing else '',
+            'time': order.thing.time.time if order.thing and order.thing.time else '',
+            'room_id': order.thing.tag_id if order.thing else None,
+            'room_name': order.thing.tag.title if order.thing and order.thing.tag else '',
+            'term_id': order.term_id,
+            'term_title': order.term.title if order.term else '',
+        })
+
+    return sorted(grouped.values(), key=lambda value: (value['room_name'], value['student_name']))
+
+
+def _split_student_name(first_name, last_name):
+    first = str(first_name or '').strip()
+    last = str(last_name or '').strip()
+    return ' '.join([part for part in [first, last] if part]).strip()
+
+
+def _parse_import_date(row, *keys):
+    for key in keys:
+        value = str(row.get(key) or '').strip()
+        if value:
+            parsed = parse_date(value)
+            if parsed:
+                return parsed
+    return None
+
+
+def _row_value(row, *keys):
+    for key in keys:
+        value = str(row.get(key) or '').strip()
+        if value:
+            return value
+    return ''
+
+
+@api_view(['POST'])
+@authentication_classes([AdminTokenAuthtication])
+def import_enrollments(request):
+    upload = request.FILES.get('file') or request.FILES.get('csv')
+    if not upload:
+        return APIResponse(code=1, msg='Please upload a CSV file')
+
+    try:
+        raw_text = upload.read().decode('utf-8-sig')
+    except UnicodeDecodeError:
+        return APIResponse(code=1, msg='CSV file must be saved as UTF-8')
+
+    rows = list(csv.DictReader(io.StringIO(raw_text)))
+    if not rows:
+        return APIResponse(code=1, msg='No rows found in CSV')
+
+    created = {
+        'parents': 0,
+        'students': 0,
+        'camp_weeks': 0,
+        'rooms': 0,
+        'enrollments': 0,
+        'updated_enrollments': 0,
+    }
+    errors = []
+
+    with transaction.atomic():
+        for index, row in enumerate(rows, start=2):
+            parent_username = _row_value(row, 'parent_username', 'parent')
+            first_name = _row_value(row, 'student_first_name', 'first_name')
+            last_name = _row_value(row, 'student_last_name', 'last_name')
+            student_name = _row_value(row, 'student_name') or _split_student_name(first_name, last_name)
+            camp_week_code = _row_value(row, 'camp_week_code', 'term_code')
+            camp_week_name = _row_value(row, 'camp_week_name', 'term_title') or camp_week_code
+            room_name = _row_value(row, 'default_room', 'room_name', 'room')
+
+            if not parent_username or not student_name or not camp_week_code or not room_name:
+                errors.append({
+                    'row': index,
+                    'error': 'Required fields: parent_username, student name, camp_week_code, default_room',
+                })
+                continue
+
+            start_date = _parse_import_date(row, 'start_date', 'camp_start_date')
+            end_date = _parse_import_date(row, 'end_date', 'camp_end_date')
+            if not start_date or not end_date:
+                errors.append({'row': index, 'error': 'start_date and end_date must use yyyy-mm-dd'})
+                continue
+
+            parent, parent_created = User.objects.get_or_create(
+                username=parent_username,
+                defaults={
+                    'password': 'test',
+                    'role': '1',
+                    'status': '0',
+                    'nickname': ' '.join([
+                        _row_value(row, 'parent_first_name'),
+                        _row_value(row, 'parent_last_name'),
+                    ]).strip() or parent_username,
+                    'mobile': _row_value(row, 'phone', 'parent_phone'),
+                    'email': _row_value(row, 'email', 'parent_email'),
+                },
+            )
+            if parent_created:
+                created['parents'] += 1
+            else:
+                changed = False
+                phone = _row_value(row, 'phone', 'parent_phone')
+                email = _row_value(row, 'email', 'parent_email')
+                nickname = ' '.join([
+                    _row_value(row, 'parent_first_name'),
+                    _row_value(row, 'parent_last_name'),
+                ]).strip()
+                if phone and parent.mobile != phone:
+                    parent.mobile = phone
+                    changed = True
+                if email and parent.email != email:
+                    parent.email = email
+                    changed = True
+                if nickname and parent.nickname != nickname:
+                    parent.nickname = nickname
+                    changed = True
+                if changed:
+                    parent.save()
+
+            student, student_created = Child.objects.get_or_create(
+                parent=parent,
+                name=student_name,
+                defaults={
+                    'age': int(_row_value(row, 'age') or 0) or None,
+                    'gender': _row_value(row, 'gender'),
+                    'remark': _row_value(row, 'medical_notes', 'general_notes', 'student_notes'),
+                },
+            )
+            if student_created:
+                created['students'] += 1
+
+            term, term_created = Term.objects.get_or_create(
+                title=camp_week_name,
+                defaults={
+                    'expect_time': datetime.datetime.combine(start_date, datetime.time(9, 0)),
+                    'return_time': datetime.datetime.combine(end_date, datetime.time(16, 0)),
+                    'price': '',
+                },
+            )
+            if term_created:
+                created['camp_weeks'] += 1
+            else:
+                term.expect_time = datetime.datetime.combine(start_date, datetime.time(9, 0))
+                term.return_time = datetime.datetime.combine(end_date, datetime.time(16, 0))
+                term.save()
+
+            room, room_created = Tag.objects.get_or_create(
+                title=room_name,
+                defaults={'seat': int(_row_value(row, 'capacity') or 0) or None},
+            )
+            if room_created:
+                created['rooms'] += 1
+
+            enrollment, enrollment_created = CampEnrollment.objects.update_or_create(
+                student=student,
+                term=term,
+                defaults={
+                    'parent': parent,
+                    'default_room': room,
+                    'status': _row_value(row, 'status') or 'active',
+                    'payment_status': _row_value(row, 'payment_status') or 'unpaid',
+                    'note': _row_value(row, 'notes', 'note'),
+                },
+            )
+            if enrollment_created:
+                created['enrollments'] += 1
+            else:
+                created['updated_enrollments'] += 1
+
+    return APIResponse(code=0, msg='Camp import finished', data={
+        **created,
+        'error_count': len(errors),
+        'errors': errors[:100],
+    })
+
+
+@api_view(['GET'])
+@authentication_classes([AdminTokenAuthtication])
+def export_attendance(request):
+    target_date = _parse_date(request.GET.get('date'))
+    if target_date is None:
+        return APIResponse(code=1, msg='Invalid date')
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = f'attachment; filename="camp_checkin_{target_date.isoformat()}.csv"'
+    response.write('\ufeff')
+    writer = csv.writer(response)
+    writer.writerow([
+        'Date',
+        'Camp Week',
+        'Student Name',
+        'Parent Name',
+        'Parent Phone',
+        'Room',
+        'Status',
+        'Sign In Time',
+        'Sign Out Time',
+        'Notes',
+    ])
+    for item in _student_items(target_date):
+        attendance = item.get('attendance') or {}
+        writer.writerow([
+            item.get('date') or target_date.isoformat(),
+            item.get('term_title') or '',
+            item.get('student_name') or '',
+            item.get('parent_name') or '',
+            item.get('parent_phone') or '',
+            item.get('room_name') or '',
+            attendance.get('status') or 'not_arrived',
+            attendance.get('sign_in_time') or '',
+            attendance.get('sign_out_time') or '',
+            attendance.get('note') or '',
+        ])
+    return response
+
+
+def _matches_name(item, first_name, last_name):
+    student_name = (item.get('student_name') or '').lower()
+    tokens = [value.lower().strip() for value in [first_name, last_name] if value and value.strip()]
+    if not tokens:
+        return False
+    return all(token in student_name for token in tokens)
+
+
+@api_view(['GET'])
+def search(request):
+    target_date = _parse_date(request.GET.get('date'))
+    if target_date is None:
+        return APIResponse(code=1, msg='Invalid date')
+
+    first_name = request.GET.get('first_name', '')
+    last_name = request.GET.get('last_name', '')
+    matches = [
+        item for item in _student_items(target_date)
+        if _matches_name(item, first_name, last_name)
+    ]
+    return APIResponse(code=0, msg='OK', data={
+        'date': target_date.isoformat(),
+        'camp_time': '9:00 AM - 4:00 PM',
+        'students': matches,
+    })
+
+
+@api_view(['GET'])
+def summary(request):
+    target_date = _parse_date(request.GET.get('date'))
+    if target_date is None:
+        return APIResponse(code=1, msg='Invalid date')
+
+    students = _student_items(target_date)
+    counts = {
+        'expected': len(students),
+        'not_arrived': 0,
+        'signed_in': 0,
+        'late': 0,
+        'signed_out': 0,
+        'early_pickup': 0,
+        'absent': 0,
+    }
+    rooms = {}
+    for item in students:
+        status = item['attendance']['status']
+        counts[status] = counts.get(status, 0) + 1
+        room_name = item['room_name'] or 'No room'
+        rooms.setdefault(room_name, []).append(item)
+
+    return APIResponse(code=0, msg='OK', data={
+        'date': target_date.isoformat(),
+        'camp_time': '9:00 AM - 4:00 PM',
+        'counts': counts,
+        'rooms': [{'room_name': room, 'students': items} for room, items in sorted(rooms.items())],
+        'students': students,
+    })
+
+
+def _resolve_student_for_action(target_date, student_id):
+    try:
+        student = Child.objects.select_related('parent').get(pk=student_id)
+    except Child.DoesNotExist:
+        return None, APIResponse(code=1, msg='Student not found')
+
+    scheduled_ids = {item['student_id'] for item in _student_items(target_date)}
+    if student.id not in scheduled_ids:
+        return None, APIResponse(code=1, msg='No camp schedule found for this student today')
+    return student, None
+
+
+@api_view(['POST'])
+@transaction.atomic
+def sign_in(request):
+    target_date = _parse_date(request.data.get('date'))
+    if target_date is None:
+        return APIResponse(code=1, msg='Invalid date')
+
+    student, error = _resolve_student_for_action(target_date, request.data.get('student_id'))
+    if error:
+        return error
+
+    scheduled_item = next((item for item in _student_items(target_date) if item['student_id'] == student.id), None)
+    now = datetime.datetime.now()
+    status = 'late' if now.time() > datetime.time(CAMP_START_HOUR, 0) else 'signed_in'
+    record, _created = CampAttendance.objects.select_for_update().get_or_create(
+        student=student,
+        attendance_date=target_date,
+        defaults={
+            'term_id': scheduled_item.get('term_id') if scheduled_item else None,
+            'room_id': scheduled_item.get('room_id') if scheduled_item else None,
+        },
+    )
+    if record.sign_in_time:
+        return APIResponse(code=0, msg='Already signed in', data=_serialize_record(record))
+
+    record.sign_in_time = now
+    record.status = status
+    record.sign_in_ip = _client_ip(request)
+    record.term_id = scheduled_item.get('term_id') if scheduled_item else record.term_id
+    record.room_id = scheduled_item.get('room_id') if scheduled_item else record.room_id
+    record.save()
+    return APIResponse(code=0, msg='Signed in', data=_serialize_record(record))
+
+
+@api_view(['POST'])
+@transaction.atomic
+def sign_out(request):
+    target_date = _parse_date(request.data.get('date'))
+    if target_date is None:
+        return APIResponse(code=1, msg='Invalid date')
+
+    student, error = _resolve_student_for_action(target_date, request.data.get('student_id'))
+    if error:
+        return error
+
+    try:
+        record = CampAttendance.objects.select_for_update().get(
+            student=student,
+            attendance_date=target_date,
+        )
+    except CampAttendance.DoesNotExist:
+        return APIResponse(code=1, msg='No sign-in record found today')
+
+    if record.sign_out_time:
+        return APIResponse(code=0, msg='Already signed out', data=_serialize_record(record))
+
+    now = datetime.datetime.now()
+    record.sign_out_time = now
+    record.status = 'early_pickup' if now.time() < datetime.time(CAMP_END_HOUR, 0) else 'signed_out'
+    record.sign_out_ip = _client_ip(request)
+    record.save()
+    return APIResponse(code=0, msg='Signed out', data=_serialize_record(record))

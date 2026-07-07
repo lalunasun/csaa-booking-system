@@ -318,6 +318,82 @@ class ClassPassBooking(models.Model):
         ]
 
 
+class CampAttendance(models.Model):
+    STATUS_CHOICES = (
+        ('not_arrived', 'Not arrived'),
+        ('signed_in', 'Signed in'),
+        ('late', 'Late'),
+        ('signed_out', 'Signed out'),
+        ('early_pickup', 'Early pickup'),
+        ('absent', 'Absent'),
+    )
+
+    id = models.BigAutoField(primary_key=True)
+    student = models.ForeignKey(Child, on_delete=models.CASCADE, related_name='camp_attendance_records')
+    term = models.ForeignKey(Term, on_delete=models.SET_NULL, blank=True, null=True, related_name='camp_attendance_records')
+    attendance_date = models.DateField()
+    room = models.ForeignKey(Tag, on_delete=models.SET_NULL, blank=True, null=True, related_name='camp_attendance_records')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_arrived')
+    sign_in_time = models.DateTimeField(blank=True, null=True)
+    sign_out_time = models.DateTimeField(blank=True, null=True)
+    sign_in_ip = models.CharField(max_length=100, blank=True, default='')
+    sign_out_ip = models.CharField(max_length=100, blank=True, default='')
+    note = models.TextField(max_length=1000, blank=True, default='')
+    created_time = models.DateTimeField(auto_now_add=True)
+    updated_time = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "b_camp_attendance"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['student', 'attendance_date'],
+                name='unique_camp_attendance_student_date',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['attendance_date', 'status'], name='b_camp_att_date_status_idx'),
+            models.Index(fields=['student', 'attendance_date'], name='b_camp_att_student_date_idx'),
+        ]
+
+
+class CampEnrollment(models.Model):
+    STATUS_CHOICES = (
+        ('active', 'Active'),
+        ('canceled', 'Canceled'),
+        ('waitlist', 'Waitlist'),
+    )
+    PAYMENT_STATUS_CHOICES = (
+        ('unpaid', 'Unpaid'),
+        ('deposit', 'Deposit'),
+        ('paid', 'Paid'),
+        ('waived', 'Waived'),
+    )
+
+    id = models.BigAutoField(primary_key=True)
+    student = models.ForeignKey(Child, on_delete=models.CASCADE, related_name='camp_enrollments')
+    parent = models.ForeignKey(User, on_delete=models.CASCADE, related_name='camp_enrollments')
+    term = models.ForeignKey(Term, on_delete=models.CASCADE, related_name='camp_enrollments')
+    default_room = models.ForeignKey(Tag, on_delete=models.SET_NULL, blank=True, null=True, related_name='camp_enrollments')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid')
+    note = models.TextField(max_length=1000, blank=True, default='')
+    created_time = models.DateTimeField(auto_now_add=True)
+    updated_time = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "b_camp_enrollment"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['student', 'term'],
+                name='unique_camp_enrollment_student_term',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['term', 'status'], name='b_camp_enr_term_status_idx'),
+            models.Index(fields=['student', 'term'], name='b_camp_enr_student_term_idx'),
+        ]
+
+
 class StudentLessonNote(models.Model):
     id = models.BigAutoField(primary_key=True)
     student = models.ForeignKey(Child, on_delete=models.CASCADE, related_name='lesson_notes')

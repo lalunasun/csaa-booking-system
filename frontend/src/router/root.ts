@@ -10,6 +10,11 @@ const constantRouterMap = [
     redirect: '/index/mobile'
   },
   {
+    path: '/checkin',
+    name: 'checkin',
+    component: () => import('/@/views/checkin.vue')
+  },
+  {
     path: '/index',
     name: 'index',
     redirect: '/index/portal',
@@ -149,6 +154,7 @@ const constantRouterMap = [
 
       { path: 'schedule', name: 'schedule', component: () => import('/@/views/admin/schedule.vue') },
       { path: 'classroom', name: 'classroom', component: () => import('/@/views/admin/classroom.vue') },
+      { path: 'campCheckin', name: 'campCheckin', component: () => import('/@/views/admin/camp-checkin.vue') },
       { path: 'lesson', name: 'lesson', component: () => import('/@/views/admin/lesson.vue') },
       { path: 'term', name: 'term', component: () => import('/@/views/admin/term.vue') },
       { path: 'time', name: 'time', component: () => import('/@/views/admin/time.vue') },
