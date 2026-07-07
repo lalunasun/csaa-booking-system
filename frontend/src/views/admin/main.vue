@@ -17,6 +17,10 @@
             <schedule-outlined />
             <span>Schedule</span>
           </a-menu-item>
+          <a-menu-item key="mobileSchedule">
+            <schedule-outlined />
+            <span>Mobile Schedule</span>
+          </a-menu-item>
           <a-menu-item key="classroom">
             <tablet-outlined />
             <span>Classroom for iPad</span>
@@ -148,7 +152,7 @@ const selectedKeys = ref<any[]>([])
 const collapsed = ref<boolean>(false)
 const newOrderCount = ref(0)
 const ORDER_BADGE_REFRESH_EVENT = 'admin-order-badge-refresh'
-const teacherAllowedRoutes = new Set(['schedule', 'classroom', 'lesson', 'student'])
+const teacherAllowedRoutes = new Set(['schedule', 'mobileSchedule', 'classroom', 'lesson', 'student'])
 const isTeacherRole = computed(() => userStore.admin_user_role === '2')
 const isAdminRole = computed(() => !isTeacherRole.value)
 const adminRoleLabel = computed(() => isTeacherRole.value ? 'Teacher' : 'Administrator')

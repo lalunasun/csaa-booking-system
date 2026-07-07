@@ -156,7 +156,6 @@ const completion = ref({
   showMap: false,
 });
 const mapRooms = ['Room1', 'Room2', 'Room3', 'Room4', 'Room5', 'Room6', 'Room7', 'Room8'];
-let resetTimer: ReturnType<typeof window.setTimeout> | null = null;
 const today = dayjs().format('YYYY-MM-DD');
 const todayLabel = computed(() => dayjs(today).format('dddd, MMM D, YYYY'));
 
@@ -188,10 +187,6 @@ const searchStudent = async () => {
 };
 
 const resetKiosk = () => {
-  if (resetTimer) {
-    window.clearTimeout(resetTimer);
-    resetTimer = null;
-  }
   firstName.value = '';
   lastName.value = '';
   searched.value = false;
@@ -218,10 +213,6 @@ const completeAction = (title: string, subtitle: string, options: { roomName?: s
     roomName: options.roomName || '',
     showMap: !!options.showMap,
   };
-  if (resetTimer) {
-    window.clearTimeout(resetTimer);
-  }
-  resetTimer = window.setTimeout(resetKiosk, 2500);
 };
 
 const signIn = async (student: any) => {

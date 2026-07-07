@@ -153,6 +153,7 @@ const constantRouterMap = [
     children: [
 
       { path: 'schedule', name: 'schedule', component: () => import('/@/views/admin/schedule.vue') },
+      { path: 'mobileSchedule', name: 'mobileSchedule', component: () => import('/@/views/admin/mobile-schedule.vue') },
       { path: 'classroom', name: 'classroom', component: () => import('/@/views/admin/classroom.vue') },
       { path: 'campCheckin', name: 'campCheckin', component: () => import('/@/views/admin/camp-checkin.vue') },
       { path: 'lesson', name: 'lesson', component: () => import('/@/views/admin/lesson.vue') },
