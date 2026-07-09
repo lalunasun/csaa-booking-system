@@ -94,9 +94,9 @@ If you want to keep the same local test data on another computer, copy `backend/
 
 ### Local Admin Login
 
-```text
-Username: test
-Password: test
+```
+Username: 
+Password: 
 ```
 
 ## Schedule Operation Tips
