@@ -1,0 +1,6 @@
+comment_id,student_id,student_name,course_name,comment_date,teacher_comment
+1,101,Emma Chen,Robotics,2026-07-06,Emma understands sensor input and worked well with her partner. She still needs more practice debugging robot movement.
+2,102,Liam Wang,Coding,2026-07-06,Liam completed the loop activity but needed reminders to test each step. He should review variables before the next project.
+3,103,Olivia Li,Python,2026-07-07,Olivia participated actively and explained conditionals clearly. She missed one class and should review the previous exercise.
+4,104,Noah Zhang,Robotics,2026-07-07,Noah built the robot structure independently and helped classmates. Next step is to practice documenting his design choices.
+5,105,Ava Liu,Scratch,2026-07-07,Ava is creative with sprite design and understands event blocks. She needs support organizing longer project logic.

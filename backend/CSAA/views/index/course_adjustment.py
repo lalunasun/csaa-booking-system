@@ -141,10 +141,6 @@ def create_cancel_request(request):
                 ),
             )
 
-    lesson_start = _parse_lesson_start(lesson_date, selected_class.time.time if selected_class.time else '')
-    if lesson_start - datetime.datetime.now() < datetime.timedelta(hours=48):
-        return APIResponse(code=1, msg='Cancel requests must be submitted at least 48 hours before class. Please call or email admin for special cases.')
-
     existing = CourseAdjustment.objects.filter(
         original_order=order,
         original_class=selected_class,
@@ -159,6 +155,10 @@ def create_cancel_request(request):
             msg='Schedule change request already submitted',
             data=serializer.data,
         )
+
+    lesson_start = _parse_lesson_start(lesson_date, selected_class.time.time if selected_class.time else '')
+    if lesson_start - datetime.datetime.now() < datetime.timedelta(hours=48):
+        return APIResponse(code=1, msg='Cancel requests must be submitted at least 48 hours before class. Please call or email admin for special cases.')
 
     adjustment = CourseAdjustment.objects.create(
         student=order.child,

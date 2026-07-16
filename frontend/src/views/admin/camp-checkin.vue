@@ -2,7 +2,7 @@
   <div class="camp-admin-page">
     <header class="page-head">
       <div>
-        <h1>Summer Camp Check-in</h1>
+        <h1>Summer Camp Sign-in / Sign-out</h1>
         <p>{{ selectedDate.format('dddd, MMM D, YYYY') }} · 9:00 AM - 4:00 PM</p>
       </div>
       <div class="head-actions">
@@ -99,7 +99,7 @@ const loadSummary = async () => {
     counts.value = res.data?.counts || {};
     rooms.value = res.data?.rooms || [];
   } catch (error: any) {
-    message.error(error?.msg || 'Failed to load camp check-in summary');
+    message.error(error?.msg || 'Failed to load camp sign-in summary');
   } finally {
     loading.value = false;
   }
@@ -140,7 +140,7 @@ const exportCsv = async () => {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `camp_checkin_${date}.csv`;
+    link.download = `camp_signin_${date}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

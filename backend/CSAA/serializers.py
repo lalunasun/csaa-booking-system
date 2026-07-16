@@ -1232,39 +1232,6 @@ class LessonDetailSerializer(serializers.ModelSerializer):
 
     def get_students(self, obj):
         students = [self._serialize_order_student(order) for order in self._scheduled_orders(obj)]
-        class_date = self.context.get('class_date')
-        if not class_date:
-            return students
-
-        moved_in = DailyStudentAdjustment.objects.filter(
-            target_lesson=obj,
-            lesson_date=class_date,
-            status='active',
-            adjustment_type='move',
-            student__isnull=False,
-        ).select_related('student', 'student__parent', 'source_order__term')
-
-        seen = {student['id'] for student in students}
-        for adjustment in moved_in:
-            child = adjustment.student
-            if child.id in seen:
-                continue
-            parent = child.parent
-            term = adjustment.source_order.term if adjustment.source_order else None
-            seen.add(child.id)
-            students.append({
-                'id': child.id,
-                'name': child.name,
-                'parent_name': (parent.nickname or parent.username) if parent else None,
-                'phone': parent.mobile if parent else None,
-                'term_info': {
-                    'term_id': term.id,
-                    'term_name': term.title,
-                } if term else None,
-                'adjustment_id': adjustment.id,
-                'adjustment_status': 'moved',
-            })
-
         return sorted(students, key=lambda student: student.get('name') or '')
 
     def get_reschedule_students(self, obj):
@@ -1299,6 +1266,37 @@ class LessonDetailSerializer(serializers.ModelSerializer):
                 'adjustment_status': 'reschedule',
             })
 
+        if class_date:
+            moved_in = DailyStudentAdjustment.objects.filter(
+                target_lesson=obj,
+                lesson_date=class_date,
+                status='active',
+                adjustment_type='move',
+                student__isnull=False,
+            ).select_related('student', 'student__parent', 'source_order__term')
+
+            for adjustment in moved_in:
+                child = adjustment.student
+                parent = child.parent
+                key = child.id
+                if key in seen:
+                    continue
+                term = adjustment.source_order.term if adjustment.source_order else None
+                seen.add(key)
+                students.append({
+                    'id': child.id,
+                    'name': child.name,
+                    'parent_name': (parent.nickname or parent.username) if parent else None,
+                    'phone': parent.mobile if parent else None,
+                    'term_info': {
+                        'term_id': term.id,
+                        'term_name': term.title,
+                    } if term else None,
+                    'adjustment_id': adjustment.id,
+                    'makeup_date': class_date.strftime('%Y-%m-%d'),
+                    'adjustment_status': 'moved',
+                })
+
         if not class_date:
             for student in obj.reschedule_students.all():
                 if student.id in seen:
@@ -1306,7 +1304,7 @@ class LessonDetailSerializer(serializers.ModelSerializer):
                 serialized = ChildSerializer(student, context={'lesson': obj, 'student_type': 'reschedule'}).data
                 students.append(serialized)
 
-        return students
+        return sorted(students, key=lambda student: student.get('name') or '')
 
     def _date_part(self, value):
         if not value:

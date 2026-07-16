@@ -1,0 +1,13 @@
+{
+  "code": 0,
+  "msg": "Signed out",
+  "data": {
+    "student_id": 101,
+    "student_name": "Emma Chen",
+    "action": "sign_out",
+    "date": "2026-07-06",
+    "time": "16:02",
+    "room": "Room 2",
+    "status": "signed_out"
+  }
+}

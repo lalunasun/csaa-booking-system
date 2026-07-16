@@ -65,7 +65,7 @@ def create(request):
     if _is_trial_course(thing):
         data['num'] = '2'
         amount = _trial_amount(thing)
-        if amount is not None:
+        if not data.get('amount') and amount is not None:
             data['amount'] = amount
     create_time = datetime.datetime.now()
     data['create_time'] = create_time

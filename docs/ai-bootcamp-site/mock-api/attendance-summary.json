@@ -1,0 +1,17 @@
+{
+  "code": 0,
+  "msg": "OK",
+  "data": {
+    "date": "2026-07-06",
+    "total_students": 5,
+    "signed_out": 3,
+    "signed_in": 1,
+    "absent": 1,
+    "rooms": [
+      { "room": "Room 1", "students": 1 },
+      { "room": "Room 2", "students": 2 },
+      { "room": "Room 3", "students": 1 },
+      { "room": "Room 4", "students": 1 }
+    ]
+  }
+}

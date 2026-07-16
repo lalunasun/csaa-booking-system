@@ -20,7 +20,16 @@
                 <h2>{{ pageData.title }}</h2>
                 <h2>On {{ pageData.day }}</h2>
               </div>
-              <div class="pay">${{ pageData.price }}</div>
+              <div class="pay price-editor">
+                <span>$</span>
+                <a-input-number
+                  v-model:value="pageData.price"
+                  :min="0"
+                  :precision="2"
+                  size="small"
+                  @change="handleUnitPriceChange"
+                />
+              </div>
 
             </div>
           </div>
@@ -72,7 +81,14 @@
           <div class="total-price-view flex-view">
             <span>Total</span>
             <div class="price">
-              <span class="font-big">${{ pageData.amount }}</span>
+              <span class="font-big">$</span>
+              <a-input-number
+                v-model:value="pageData.amount"
+                :min="0"
+                :precision="2"
+                class="amount-input"
+                @change="handleAmountChange"
+              />
             </div>
 
           </div>
@@ -116,6 +132,7 @@ const pageData = reactive({
   remark: '',
   count: 1,
   amount: 0,
+  amountManuallyEdited: false,
   receiverName: undefined,
   receiverPhone: undefined,
   receiverAddress: undefined,
@@ -217,9 +234,24 @@ const isTrialCourse = () => {
   return String(pageData.classification_title || '').trim().toLowerCase() === 'trial'
 }
 
+const setCalculatedAmount = (value: number) => {
+  if (!pageData.amountManuallyEdited) {
+    pageData.amount = Number(Number(value || 0).toFixed(2))
+  }
+}
+
+const handleUnitPriceChange = () => {
+  pageData.amountManuallyEdited = false
+  calculateAmount()
+}
+
+const handleAmountChange = () => {
+  pageData.amountManuallyEdited = true
+}
+
 const applyTrialPricing = () => {
-  pageData.num = 3
-  pageData.amount = Number(pageData.price || 0) * 3
+  pageData.num = 2
+  setCalculatedAmount(Number(pageData.price || 0) * 2)
 }
 
 
@@ -261,7 +293,7 @@ const calculateAmount = () => {
       }
       pageData.num = weekDays
       // 更新订单金额，假设价格是每天的价格
-      pageData.amount = pageData.price * weekDays;
+      setCalculatedAmount(Number(pageData.price || 0) * weekDays);
     } 
     else { //按学期计
       const endDate = new Date(pageData.return_time);
@@ -270,7 +302,7 @@ const calculateAmount = () => {
 
       if (targetDay === undefined) {
         pageData.num = 0
-        pageData.amount = 0
+        setCalculatedAmount(0)
         return
       }
 
@@ -281,7 +313,7 @@ const calculateAmount = () => {
       }
 
       pageData.num = weekDays
-      pageData.amount = termPrice !== undefined ? termPrice : Number(pageData.price) * weekDays
+      setCalculatedAmount(termPrice !== undefined ? termPrice : Number(pageData.price) * weekDays)
     }
    
   }
@@ -341,7 +373,11 @@ const handleJiesuan = () => {
       return
     }
 
+    const manualAmount = pageData.amountManuallyEdited ? Number(pageData.amount || 0) : null
     calculateAmount()
+    if (manualAmount !== null) {
+      pageData.amount = Number(manualAmount.toFixed(2))
+    }
 
     if (!pageData.num || !pageData.amount) {
       message.warn('Unable to calculate this order. Please check the term dates and class day.')
@@ -516,8 +552,23 @@ const handleJiesuan = () => {
     color: #ff8a00;
     font-weight: 600;
     font-size: 16px;
-    width: 65px;
+    width: 120px;
     margin-right: 20px;
+  }
+
+  .price-editor {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    :deep(.ant-input-number) {
+      width: 96px;
+    }
+
+    :deep(.ant-input-number-input) {
+      color: #ff8a00;
+      font-weight: 600;
+    }
   }
 
   .num-box {
@@ -645,10 +696,24 @@ const handleJiesuan = () => {
     font-weight: 500;
 
     .price {
+      display: flex;
+      align-items: center;
+      gap: 4px;
       color: #ff8a00;
       font-size: 16px;
       height: 36px;
       line-height: 36px;
+
+      .amount-input {
+        width: 120px;
+      }
+
+      :deep(.ant-input-number-input) {
+        color: #ff8a00;
+        font-size: 18px;
+        font-weight: 600;
+        text-align: right;
+      }
     }
   }
 

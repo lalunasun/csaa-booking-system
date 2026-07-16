@@ -4,7 +4,7 @@
       <header class="checkin-header">
         <div>
           <p class="eyebrow">Summer Camp</p>
-          <h1>Check-in / Check-out</h1>
+          <h1>Sign-in / Sign-out</h1>
           <p>{{ todayLabel }} · 9:00 AM - 4:00 PM</p>
         </div>
       </header>
@@ -91,6 +91,12 @@
             </div>
 
             <div class="time-status">
+              <span v-if="student.waiver_signed" class="waiver-ok">
+                Waiver signed
+              </span>
+              <span v-else class="waiver-needed">
+                Waiver required
+              </span>
               <span v-if="student.attendance.sign_in_time">
                 Signed in {{ formatTime(student.attendance.sign_in_time) }}
               </span>
@@ -130,6 +136,35 @@
           description="No camp schedule found for this student today"
         />
       </a-spin>
+
+      <a-modal
+        v-model:visible="waiverModal.visible"
+        title="Camp waiver"
+        ok-text="Agree and sign in"
+        cancel-text="Cancel"
+        :confirm-loading="waiverModal.loading"
+        @ok="submitWaiverAndSignIn"
+      >
+        <div class="waiver-copy">
+          <p>
+            I confirm that I am the parent or authorized guardian for
+            <strong>{{ waiverModal.student?.student_name || 'this student' }}</strong>.
+          </p>
+          <p>
+            I understand that camp activities may include classroom activities, supervised movement
+            inside the school, and normal risks related to children's programs. I authorize CSAA
+            staff to provide basic assistance and contact the parent/guardian if needed.
+          </p>
+          <a-checkbox v-model:checked="waiverModal.accepted">
+            I have read and agree to the camp waiver.
+          </a-checkbox>
+          <a-input
+            v-model:value="waiverModal.signerName"
+            class="waiver-input"
+            placeholder="Parent / guardian full name"
+          />
+        </div>
+      </a-modal>
     </section>
   </main>
 </template>
@@ -154,6 +189,13 @@ const completion = ref({
   subtitle: '',
   roomName: '',
   showMap: false,
+});
+const waiverModal = ref({
+  visible: false,
+  loading: false,
+  accepted: false,
+  signerName: '',
+  student: null as any,
 });
 const mapRooms = ['Room1', 'Room2', 'Room3', 'Room4', 'Room5', 'Room6', 'Room7', 'Room8'];
 const today = dayjs().format('YYYY-MM-DD');
@@ -216,9 +258,23 @@ const completeAction = (title: string, subtitle: string, options: { roomName?: s
 };
 
 const signIn = async (student: any) => {
+  if (!student.waiver_signed) {
+    waiverModal.value = {
+      visible: true,
+      loading: false,
+      accepted: false,
+      signerName: '',
+      student,
+    };
+    return;
+  }
+  await performSignIn(student);
+};
+
+const performSignIn = async (student: any, waiverData: Record<string, any> = {}) => {
   actionLoadingId.value = `in-${student.student_id}`;
   try {
-    const res = await signInApi({ student_id: student.student_id, date: today });
+    const res = await signInApi({ student_id: student.student_id, date: today, ...waiverData });
     const timeText = res.data?.sign_in_time ? formatTime(res.data.sign_in_time) : dayjs().format('h:mm A');
     completeAction(
       `${student.student_name} signed in`,
@@ -230,6 +286,31 @@ const signIn = async (student: any) => {
     noticeType.value = 'error';
   } finally {
     actionLoadingId.value = '';
+  }
+};
+
+const submitWaiverAndSignIn = async () => {
+  if (!waiverModal.value.accepted) {
+    message.warning('Please agree to the waiver before signing in');
+    return;
+  }
+  if (!waiverModal.value.signerName.trim()) {
+    message.warning('Please enter the parent / guardian name');
+    return;
+  }
+  const student = waiverModal.value.student;
+  if (!student) {
+    return;
+  }
+  waiverModal.value.loading = true;
+  try {
+    await performSignIn(student, {
+      waiver_accepted: true,
+      waiver_signer_name: waiverModal.value.signerName.trim(),
+    });
+    waiverModal.value.visible = false;
+  } finally {
+    waiverModal.value.loading = false;
   }
 };
 
@@ -460,6 +541,29 @@ const normalizeRoom = (value: string) => String(value || '').replace(/\s+/g, '')
   margin-top: 14px;
   color: #475569;
   font-weight: 700;
+}
+
+.waiver-ok {
+  color: #08734f;
+}
+
+.waiver-needed {
+  color: #b45309;
+}
+
+.waiver-copy {
+  display: grid;
+  gap: 12px;
+  color: #334155;
+}
+
+.waiver-copy p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.waiver-input {
+  margin-top: 4px;
 }
 
 .actions {

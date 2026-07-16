@@ -603,6 +603,46 @@ class LessonDetailDateFilterTests(TestCase):
             ['Current Student'],
         )
 
+    def test_lesson_detail_lists_daily_move_as_rescheduled_not_normal(self):
+        order = Order.objects.get(order_number='DATEFILTER001')
+        candidate = self._candidate_class('Sun', '16:00-17:00', 'Daily Move Room')
+        target_lesson = Lesson.objects.create(thing=candidate)
+        DailyStudentAdjustment.objects.create(
+            student=self.current_child,
+            lesson_date=datetime.date(2026, 6, 28),
+            adjustment_type='move',
+            source_lesson=self.lesson,
+            target_lesson=target_lesson,
+            source_order=order,
+            status='active',
+        )
+
+        source_data = LessonDetailSerializer(
+            self.lesson,
+            context={'class_date': datetime.date(2026, 6, 28)},
+        ).data
+        target_data = LessonDetailSerializer(
+            target_lesson,
+            context={'class_date': datetime.date(2026, 6, 28)},
+        ).data
+
+        self.assertNotIn(
+            'Current Student',
+            [student['name'] for student in source_data['students']],
+        )
+        self.assertNotIn(
+            'Current Student',
+            [student['name'] for student in target_data['students']],
+        )
+        self.assertEqual(
+            [student['name'] for student in target_data['reschedule_students']],
+            ['Current Student'],
+        )
+        self.assertEqual(
+            target_data['reschedule_students'][0]['adjustment_status'],
+            'moved',
+        )
+
     def test_cancel_request_rejects_date_without_class(self):
         order = Order.objects.get(order_number='DATEFILTER001')
 

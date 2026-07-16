@@ -1,0 +1,13 @@
+{
+  "code": 0,
+  "msg": "Signed in",
+  "data": {
+    "student_id": 101,
+    "student_name": "Emma Chen",
+    "action": "sign_in",
+    "date": "2026-07-06",
+    "time": "09:04",
+    "room": "Room 2",
+    "status": "signed_in"
+  }
+}

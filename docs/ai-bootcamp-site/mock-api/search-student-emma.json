@@ -1,0 +1,12 @@
+{
+  "code": 0,
+  "msg": "OK",
+  "data": {
+    "student_id": 101,
+    "student_name": "Emma Chen",
+    "room": "Room 2",
+    "camp_week": "Summer Camp Week 1",
+    "current_course": "Robotics",
+    "status": "not_arrived"
+  }
+}

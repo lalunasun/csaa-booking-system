@@ -1,0 +1,11 @@
+attendance_id,student_id,student_name,date,room,sign_in_time,sign_out_time,status
+1,101,Emma Chen,2026-07-06,Room 2,09:04,16:02,signed_out
+2,102,Liam Wang,2026-07-06,Room 1,09:12,16:00,signed_out
+3,103,Olivia Li,2026-07-06,Room 3,,,absent
+4,104,Noah Zhang,2026-07-06,Room 2,08:58,15:45,signed_out
+5,105,Ava Liu,2026-07-06,Room 4,09:25,,signed_in
+6,101,Emma Chen,2026-07-07,Room 2,09:01,16:05,signed_out
+7,102,Liam Wang,2026-07-07,Room 1,,,absent
+8,103,Olivia Li,2026-07-07,Room 3,09:08,16:01,signed_out
+9,104,Noah Zhang,2026-07-07,Room 2,09:15,16:03,signed_out
+10,105,Ava Liu,2026-07-07,Room 4,09:03,16:00,signed_out

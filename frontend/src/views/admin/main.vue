@@ -12,7 +12,7 @@
     </a-layout-header>
     <a-layout>
       <a-layout-sider v-model="collapsed" collapsible >
-        <a-menu style="overflow:auto; overflow-x: hidden;" v-model:selectedKeys="selectedKeys" theme="dark" mode="inline" @click="handleClick">
+        <a-menu style="overflow:auto; overflow-x: hidden;" v-model:selectedKeys="selectedKeys" v-model:openKeys="openKeys" theme="dark" mode="inline" @click="handleClick">
           <a-menu-item key="schedule">
             <schedule-outlined />
             <span>Schedule</span>
@@ -27,7 +27,7 @@
           </a-menu-item>
           <a-menu-item v-if="isAdminRole" key="campCheckin">
             <calendar-outlined/>
-            <span>Camp Check-in</span>
+            <span>Camp Sign-in/out</span>
           </a-menu-item>
           <a-menu-item v-if="isAdminRole" key="order">
             <dollar-outlined/>
@@ -56,11 +56,19 @@
             <team-outlined/>
             <span>Student</span>
           </a-menu-item>
+          <a-menu-item v-if="isAdminRole" key="term">
+            <calendar-outlined/>
+            <span>Terms</span>
+          </a-menu-item>
           <a-sub-menu v-if="isAdminRole" key="setup">
             <template #icon>
               <setting-outlined/>
             </template>
             <template #title>Setup</template>
+            <a-menu-item key="time">
+              <clock-circle-outlined/>
+              <span>Time Slots</span>
+            </a-menu-item>
             <a-menu-item key="thing">
               <database-outlined/>
               <span>Classes</span>
@@ -72,14 +80,6 @@
             <a-menu-item key="tag">
               <tag-outlined/>
               <span>Rooms</span>
-            </a-menu-item>
-            <a-menu-item key="time">
-              <clock-circle-outlined/>
-              <span>Time Slots</span>
-            </a-menu-item>
-            <a-menu-item key="term">
-              <calendar-outlined/>
-              <span>Terms</span>
             </a-menu-item>
           </a-sub-menu>
           <a-sub-menu v-if="false">
@@ -149,10 +149,12 @@ import { listApi as listOrderApi } from '/@/api/admin/order';
 const userStore = useUserStore();
 
 const selectedKeys = ref<any[]>([])
+const openKeys = ref<any[]>(['setup'])
 const collapsed = ref<boolean>(false)
 const newOrderCount = ref(0)
 const ORDER_BADGE_REFRESH_EVENT = 'admin-order-badge-refresh'
 const teacherAllowedRoutes = new Set(['schedule', 'mobileSchedule', 'classroom', 'lesson', 'student'])
+const setupRoutes = new Set(['thing', 'classification', 'tag', 'time', 'term'])
 const isTeacherRole = computed(() => userStore.admin_user_role === '2')
 const isAdminRole = computed(() => !isTeacherRole.value)
 const adminRoleLabel = computed(() => isTeacherRole.value ? 'Teacher' : 'Administrator')
@@ -171,9 +173,16 @@ const handleClick = ({item, key, keyPath}) => {
   })
 }
 
+const syncOpenKeys = (name) => {
+  if (setupRoutes.has(String(name))) {
+    openKeys.value = ['setup']
+  }
+}
+
 onMounted(() => {
   console.log('当前路由===>', route.name)
   selectedKeys.value = [route.name]
+  syncOpenKeys(route.name)
   loadMenuBadges()
   window.addEventListener(ORDER_BADGE_REFRESH_EVENT, loadMenuBadges)
   window.addEventListener('focus', loadMenuBadges)
@@ -188,6 +197,7 @@ watch(
   () => route.name,
   (name) => {
     selectedKeys.value = [name]
+    syncOpenKeys(name)
     loadMenuBadges()
   }
 )
@@ -200,9 +210,13 @@ const loadMenuBadges = () => {
   listOrderApi({})
     .then((res) => {
       const orders = res.data || []
-      // Red dot means: orders waiting for admin payment review or scheduling.
-      // Once an order is scheduled, its status becomes 6 and the dot disappears.
-      newOrderCount.value = orders.filter((order) => [1, 2].includes(Number(order.status))).length
+      // Red dot means: new parent orders waiting for admin payment review.
+      // Paid or scheduled orders stay in the order page, but no longer trigger the menu alert.
+      newOrderCount.value = orders.filter((order) =>
+        Number(order.status) === 1 &&
+        Number(order.child) > 0 &&
+        Number(order.thing) > 0
+      ).length
     })
     .catch((err) => {
       console.log(err)

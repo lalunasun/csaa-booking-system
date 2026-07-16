@@ -11,11 +11,12 @@ from rest_framework.decorators import api_view, authentication_classes
 
 from CSAA.auth.authentication import AdminTokenAuthtication
 from CSAA.handler import APIResponse
-from CSAA.models import CampAttendance, CampEnrollment, Child, Order, Tag, Term, User
+from CSAA.models import CampAttendance, CampEnrollment, CampWaiver, Child, Order, Tag, Term, User
 
 
 CAMP_START_HOUR = 9
 CAMP_END_HOUR = 16
+CAMP_WAIVER_VERSION = '2026-summer-v1'
 
 
 def _client_ip(request):
@@ -99,6 +100,16 @@ def _serialize_record(record):
     }
 
 
+def _has_waiver(student_id, term_id):
+    if not student_id or not term_id:
+        return False
+    return CampWaiver.objects.filter(
+        student_id=student_id,
+        term_id=term_id,
+        waiver_version=CAMP_WAIVER_VERSION,
+    ).exists()
+
+
 def _student_items(target_date):
     enrollments = list(_camp_enrollments(target_date))
     if enrollments:
@@ -119,6 +130,7 @@ def _student_items(target_date):
                 'date': target_date.isoformat(),
                 'term_id': enrollment.term_id,
                 'term_title': enrollment.term.title if enrollment.term else '',
+                'waiver_signed': _has_waiver(student.id, enrollment.term_id),
                 'room_id': room.id if room else None,
                 'room_name': room.title if room else '',
                 'attendance': _serialize_record(records.get(student.id)),
@@ -155,6 +167,7 @@ def _student_items(target_date):
             'date': target_date.isoformat(),
             'term_id': order.term_id,
             'term_title': order.term.title if order.term else '',
+            'waiver_signed': _has_waiver(child.id, order.term_id),
             'room_id': order.thing.tag_id if order.thing else None,
             'room_name': order.thing.tag.title if order.thing and order.thing.tag else '',
             'attendance': _serialize_record(records.get(child.id)),
@@ -451,6 +464,31 @@ def _resolve_student_for_action(target_date, student_id):
     return student, None
 
 
+def _record_waiver_if_needed(request, student, scheduled_item):
+    term_id = scheduled_item.get('term_id') if scheduled_item else None
+    if not term_id or _has_waiver(student.id, term_id):
+        return None
+
+    accepted = request.data.get('waiver_accepted')
+    signer_name = str(request.data.get('waiver_signer_name') or '').strip()
+    accepted_text = str(accepted).strip().lower()
+    if accepted_text not in ['1', 'true', 'yes', 'on'] or not signer_name:
+        return APIResponse(code=2, msg='Waiver signature is required before sign in', data={
+            'waiver_required': True,
+            'waiver_version': CAMP_WAIVER_VERSION,
+        })
+
+    CampWaiver.objects.create(
+        student=student,
+        parent=student.parent,
+        term_id=term_id,
+        signer_name=signer_name,
+        waiver_version=CAMP_WAIVER_VERSION,
+        signed_ip=_client_ip(request),
+    )
+    return None
+
+
 @api_view(['POST'])
 @transaction.atomic
 def sign_in(request):
@@ -463,6 +501,10 @@ def sign_in(request):
         return error
 
     scheduled_item = next((item for item in _student_items(target_date) if item['student_id'] == student.id), None)
+    waiver_error = _record_waiver_if_needed(request, student, scheduled_item)
+    if waiver_error:
+        return waiver_error
+
     now = datetime.datetime.now()
     status = 'late' if now.time() > datetime.time(CAMP_START_HOUR, 0) else 'signed_in'
     record, _created = CampAttendance.objects.select_for_update().get_or_create(

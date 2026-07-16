@@ -394,6 +394,29 @@ class CampEnrollment(models.Model):
         ]
 
 
+class CampWaiver(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    student = models.ForeignKey(Child, on_delete=models.CASCADE, related_name='camp_waivers')
+    parent = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='camp_waivers')
+    term = models.ForeignKey(Term, on_delete=models.CASCADE, related_name='camp_waivers')
+    signer_name = models.CharField(max_length=100)
+    waiver_version = models.CharField(max_length=40, default='2026-summer-v1')
+    signed_time = models.DateTimeField(auto_now_add=True)
+    signed_ip = models.CharField(max_length=100, blank=True, default='')
+
+    class Meta:
+        db_table = "b_camp_waiver"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['student', 'term', 'waiver_version'],
+                name='unique_camp_waiver_student_term_version',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['term', 'student'], name='b_camp_waiver_term_student_idx'),
+        ]
+
+
 class StudentLessonNote(models.Model):
     id = models.BigAutoField(primary_key=True)
     student = models.ForeignKey(Child, on_delete=models.CASCADE, related_name='lesson_notes')

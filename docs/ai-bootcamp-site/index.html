@@ -1,0 +1,1283 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Student Support Assistant Bootcamp</title>
+  <style>
+    :root {
+      --ink: #13243a;
+      --muted: #5d6b7c;
+      --line: #d9e2ef;
+      --blue: #246bfe;
+      --green: #12805c;
+      --orange: #b75b00;
+      --bg: #f6f8fb;
+      --card: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+      line-height: 1.55;
+    }
+
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    .nav {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      margin-left: 16px;
+    }
+
+    .nav a:hover {
+      color: var(--blue);
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 24px;
+      align-items: stretch;
+      margin-bottom: 26px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 22px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 34px;
+      line-height: 1.12;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 23px;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .tag {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 13px;
+      background: #f8fbff;
+      color: #27496d;
+    }
+
+    .path {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .path div {
+      min-height: 70px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fbff;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .week-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin: 18px 0 28px;
+    }
+
+    .week-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .week-card strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--blue);
+    }
+
+    .track-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin: 18px 0 28px;
+    }
+
+    .track-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 20px;
+      min-height: 230px;
+    }
+
+    .track-card.project {
+      border-top: 5px solid var(--blue);
+    }
+
+    .track-card.skill {
+      border-top: 5px solid var(--green);
+    }
+
+    .track-card ul,
+    .roadmap-card ul {
+      padding-left: 20px;
+      margin: 10px 0 0;
+      color: var(--muted);
+    }
+
+    .roadmap-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .roadmap-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 15px;
+    }
+
+    .system-grid,
+    .deliverable-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .system-card,
+    .deliverable-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .system-card strong,
+    .deliverable-card strong {
+      display: block;
+      color: var(--green);
+      margin-bottom: 6px;
+    }
+
+    .lesson-links {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .lesson-link {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #f8fbff;
+    }
+
+    .lesson-link a {
+      color: var(--blue);
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .lesson-link a:hover {
+      text-decoration: underline;
+    }
+
+    .step-list {
+      counter-reset: step;
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .step-item {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .step-item::before {
+      counter-increment: step;
+      content: counter(step);
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: #e9f7f1;
+      color: var(--green);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+    }
+
+    .roadmap-index {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: linear-gradient(135deg, #246bfe, #16a085);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .lesson-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .lesson-list {
+      position: sticky;
+      top: 78px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .lesson-button {
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      padding: 13px 14px;
+      text-align: left;
+      cursor: pointer;
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .lesson-button:last-child {
+      border-bottom: 0;
+    }
+
+    .lesson-button.active {
+      background: #eaf1ff;
+      color: #0b4ed8;
+      font-weight: 800;
+    }
+
+    .lesson-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 16px;
+    }
+
+    .pill {
+      display: inline-block;
+      border-radius: 6px;
+      background: #eef4ff;
+      color: #174ea6;
+      padding: 4px 8px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .pill.green {
+      background: #e9f7f1;
+      color: var(--green);
+    }
+
+    .pill.orange {
+      background: #fff4e6;
+      color: var(--orange);
+    }
+
+    .lesson-section {
+      border-top: 1px solid var(--line);
+      padding-top: 16px;
+      margin-top: 16px;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e5edf8;
+      padding: 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+
+    code {
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .checklist label {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      margin: 9px 0;
+      cursor: pointer;
+    }
+
+    .resources {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .resource-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      border: 1px solid #1e5fea;
+      border-radius: 6px;
+      padding: 9px 12px;
+      color: #fff;
+      background: var(--blue);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .btn.secondary {
+      color: var(--blue);
+      background: #fff;
+    }
+
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 22px 20px;
+      color: var(--muted);
+      text-align: center;
+      background: #fff;
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .lesson-layout,
+      .week-grid,
+      .track-grid,
+      .roadmap-grid,
+      .system-grid,
+      .deliverable-grid,
+      .resources {
+        grid-template-columns: 1fr;
+      }
+
+      .path {
+        grid-template-columns: 1fr;
+      }
+
+      .lesson-list {
+        position: static;
+      }
+
+      .nav {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav a {
+        margin-left: 0;
+        margin-right: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav">
+      <div class="brand">AI Student Support Assistant Bootcamp</div>
+      <nav>
+        <a href="#overview">Overview</a>
+        <a href="#tracks">Tracks</a>
+        <a href="#skills">Skill Track</a>
+        <a href="#learning-system">Learning System</a>
+        <a href="#lessons">Lessons</a>
+        <a href="#resources">Resources</a>
+        <a href="#final">Final Project</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section id="overview" class="hero">
+      <div class="panel">
+        <h1>Build a Real Data-to-AI Project</h1>
+        <p class="muted">
+          A project and competition starter hub for high school students. Students build from demo CSV and mock API examples first, so they can learn API concepts without connecting to the real CSAA system.
+        </p>
+        <div class="tag-row">
+          <span class="tag">Python friendly</span>
+          <span class="tag">No HTML required</span>
+          <span class="tag">OpenAI API ready</span>
+          <span class="tag">Competition project</span>
+          <span class="tag">Anonymized demo data</span>
+          <span class="tag">Project Track + Skill Track</span>
+          <span class="tag">Mock API only</span>
+        </div>
+        <div class="path" aria-label="project flow">
+          <div>Real School Operation</div>
+          <div>Data Collection</div>
+          <div>Structured Database</div>
+          <div>Python Analysis</div>
+          <div>AI Summary</div>
+          <div>Student Learning Profile</div>
+          <div>Human Review</div>
+        </div>
+      </div>
+      <aside class="panel">
+        <h2>Course Rules</h2>
+        <p><strong>Length:</strong> 4 weeks</p>
+        <p><strong>Study mode:</strong> self-learning </p>
+        <p><strong>Minimum pace:</strong> 2 lessons per week</p>
+        <p><strong>Language:</strong> English | Chinese</p>
+        <p><strong>Final output:</strong> PPT + demo dashboard</p>
+        <p><strong>Team size:</strong> 4 students</p>
+        <p><strong>API mode:</strong> mock JSON first, no production connection</p>
+      </aside>
+    </section>
+
+    <section id="tracks" class="track-grid">
+      <article class="track-card project">
+        <h2>Track A: Project Track</h2>
+        <p class="muted">Build a real AI application based on a simplified education-management workflow.</p>
+        <ul>
+          <li>Summer Camp Sign-in/out Data Collection</li>
+          <li>Attendance CSV and structured records</li>
+          <li>Python attendance analysis</li>
+          <li>AI teacher comment summary</li>
+          <li>Student Learning Profile dashboard</li>
+          <li>Responsible AI and human review</li>
+        </ul>
+        <p class="muted" style="margin-top: 12px;">First version uses demo CSV and mock JSON. It does not call the production CSAA API.</p>
+      </article>
+      <article class="track-card skill">
+        <h2>Track B: Competition Skill Track</h2>
+        <p class="muted">Strengthen the skills students need for future AI, data, and programming competitions.</p>
+        <ul>
+          <li>Python foundations and problem solving</li>
+          <li>Algorithms, simulation, and bot thinking</li>
+          <li>CSV, pandas, NumPy, charts, and metrics</li>
+          <li>Machine learning basics with scikit-learn</li>
+          <li>LLM prompt design and evaluation</li>
+          <li>Kaggle-style and AI contest practice</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="week-grid">
+      <article class="week-card">
+        <strong>Week 1</strong>
+        <p>From real operation to sign-in/out data. Students practice strings, records, CSV fields, and simple file output.</p>
+      </article>
+      <article class="week-card">
+        <strong>Week 2</strong>
+        <p>Mock API, JSON, database thinking, Python CSV reading, data cleaning, and charts.</p>
+      </article>
+      <article class="week-card">
+        <strong>Week 3</strong>
+        <p>Teacher comments, prompt design, AI summary, learning tags, and student profile logic.</p>
+      </article>
+      <article class="week-card">
+        <strong>Week 4</strong>
+        <p>Support prediction mini-challenge, dashboard, responsible AI, final presentation, and demo rehearsal.</p>
+      </article>
+    </section>
+
+    <section id="skills" class="panel" style="margin-bottom: 26px;">
+      <h2>Competition Skill Roadmap</h2>
+      <p class="muted">
+        Students do not need to master all of this before starting the project. The roadmap shows what to learn next if they want to move from a project demo toward stronger AI competition preparation.
+      </p>
+      <div class="roadmap-grid">
+        <article class="roadmap-card">
+          <div class="roadmap-index">0</div>
+          <h3>AI Project Mindset</h3>
+          <p>Problem, data, rules, prediction, checking, and human review.</p>
+          <ul><li>Example tasks</li><li>Rules and validation</li><li>Responsible AI</li></ul>
+        </article>
+        <article class="roadmap-card">
+          <div class="roadmap-index">1</div>
+          <h3>Python Foundations</h3>
+          <p>Variables, strings, conditionals, loops, lists, dictionaries, files, and functions.</p>
+          <ul><li>Name matching</li><li>CSV read/write</li><li>Data counting</li></ul>
+        </article>
+        <article class="roadmap-card">
+          <div class="roadmap-index">2</div>
+          <h3>Algorithms & Simulation</h3>
+          <p>Search, sorting, states, greedy choices, minimax, and simple agents.</p>
+          <ul><li>Bot games</li><li>Strategy testing</li><li>State modeling</li></ul>
+        </article>
+        <article class="roadmap-card">
+          <div class="roadmap-index">3</div>
+          <h3>Small Data Skills</h3>
+          <p>CSV, pandas, NumPy, cleaning, missing values, groupby, charts, and metrics.</p>
+          <ul><li>Attendance data</li><li>Bar charts</li><li>Kaggle playground</li></ul>
+        </article>
+        <article class="roadmap-card">
+          <div class="roadmap-index">4</div>
+          <h3>Machine Learning Basics</h3>
+          <p>Features, labels, train/test split, validation, baseline models, and metrics.</p>
+          <ul><li>Titanic-style task</li><li>Support prediction</li><li>scikit-learn</li></ul>
+        </article>
+        <article class="roadmap-card">
+          <div class="roadmap-index">5</div>
+          <h3>LLM Applications</h3>
+          <p>Prompt design, structured JSON output, comment summary, evaluation, and guardrails.</p>
+          <ul><li>OpenAI API</li><li>Prompt templates</li><li>AI summary checks</li></ul>
+        </article>
+        <article class="roadmap-card">
+          <div class="roadmap-index">6</div>
+          <h3>Competition Practice</h3>
+          <p>Leaderboards, iteration, error analysis, presentation, and project storytelling.</p>
+          <ul><li>Kaggle</li><li>AICC / CAIO style</li><li>Final demo</li></ul>
+        </article>
+        <article class="roadmap-card">
+          <div class="roadmap-index">★</div>
+          <h3>Capstone Project</h3>
+          <p>Use the skills to build the AI Student Support Assistant.</p>
+          <ul><li>Data collection</li><li>AI profile</li><li>Human review</li></ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="learning-system" class="panel" style="margin-bottom: 26px;">
+      <h2>Learning System</h2>
+      <p class="muted">
+        This self-learning system connects the sign-in/out project to Python, data, API thinking, and AI product design. Students learn one concept, practice it on a small example, then convert it into a visible project deliverable.
+      </p>
+      <div class="system-grid">
+        <article class="system-card">
+          <strong>1. Learn the Operation</strong>
+          <p>Start from a real school workflow: student search, classroom lookup, sign in, sign out, attendance export, and staff review.</p>
+        </article>
+        <article class="system-card">
+          <strong>2. Turn Actions into Data</strong>
+          <p>Convert each action into fields such as student_id, date, room, sign_in_time, sign_out_time, status, and notes.</p>
+        </article>
+        <article class="system-card">
+          <strong>3. Practice Python Thinking</strong>
+          <p>Use strings, dictionaries, CSV files, functions, pandas, and charts to analyze the demo attendance records.</p>
+        </article>
+        <article class="system-card">
+          <strong>4. Understand API Logic</strong>
+          <p>Read mock JSON responses to understand endpoint, request, response, status code, and error handling before touching any real system.</p>
+        </article>
+        <article class="system-card">
+          <strong>5. Add AI Support</strong>
+          <p>Use teacher comments and structured prompts to generate parent-friendly summaries, next steps, and support suggestions.</p>
+        </article>
+        <article class="system-card">
+          <strong>6. Build the Demo Product</strong>
+          <p>Combine data analysis, AI summary, student profile, dashboard, and responsible AI notes into a final team presentation.</p>
+        </article>
+      </div>
+
+      <div class="lesson-section">
+        <h3>Weekly Learning Outputs</h3>
+        <div class="deliverable-grid">
+          <article class="deliverable-card">
+            <strong>Week 1 Output</strong>
+            <p>Sign-in/out workflow diagram, attendance fields, and one pure Python sign-in/out practice script.</p>
+          </article>
+          <article class="deliverable-card">
+            <strong>Week 2 Output</strong>
+            <p>Mock API explanation, cleaned attendance CSV, basic statistics, and one chart about attendance patterns.</p>
+          </article>
+          <article class="deliverable-card">
+            <strong>Week 3 Output</strong>
+            <p>Teacher comment labels, AI summary JSON, and one complete Student Learning Profile.</p>
+          </article>
+          <article class="deliverable-card">
+            <strong>Week 4 Output</strong>
+            <p>Support prediction experiment, dashboard demo, responsible AI statement, final slides, and demo script.</p>
+          </article>
+          <article class="deliverable-card">
+            <strong>Daily Habit</strong>
+            <p>Write a short learning log: what I learned, what broke, how I fixed it, and what I will test next.</p>
+          </article>
+          <article class="deliverable-card">
+            <strong>Team Habit</strong>
+            <p>Every teammate owns one role: data, Python analysis, AI prompt, dashboard, presentation, or QA review.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="lessons" class="lesson-layout">
+      <div class="lesson-list" id="lessonList"></div>
+      <article class="panel" id="lessonContent"></article>
+    </section>
+
+    <section id="resources" class="panel" style="margin-top: 26px;">
+      <h2>Templates and Resources</h2>
+      <p class="muted">These starter files let students practice with demo data and mock API responses before any real system integration.</p>
+      <div class="resources">
+        <div class="resource-card">
+          <h3>CSV Templates</h3>
+          <p>Practice with anonymized demo data.</p>
+          <p><a href="data/students.csv">students.csv</a></p>
+          <p><a href="data/attendance.csv">attendance.csv</a></p>
+          <p><a href="data/teacher_comments.csv">teacher_comments.csv</a></p>
+        </div>
+        <div class="resource-card">
+          <h3>Mock API Examples</h3>
+          <p>Learn request/response and JSON without touching the real system.</p>
+          <p><a href="mock-api/search-student-emma.json">search student</a></p>
+          <p><a href="mock-api/sign-in-emma.json">sign in</a></p>
+          <p><a href="mock-api/sign-out-emma.json">sign out</a></p>
+          <p><a href="mock-api/attendance-summary.json">attendance summary</a></p>
+        </div>
+        <div class="resource-card">
+          <h3>Code and AI Templates</h3>
+          <p><a href="templates/signin_python_practice.py">Pure Python sign-in/out practice</a></p>
+          <p><a href="templates/attendance_analysis_starter.py">Python attendance analysis starter</a></p>
+          <p><a href="templates/openai_comment_summary_prompt.md">OpenAI comment summary prompt</a></p>
+          <p>Streamlit dashboard template will be added next.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="final" class="panel" style="margin-top: 26px;">
+      <h2>Final Project</h2>
+      <p>Each team presents a mini AI Student Support Assistant. The demo should show how a real school operation becomes data, and how data becomes an AI-supported student profile.</p>
+      <div class="lesson-section">
+        <h3>Final Demo Flow</h3>
+        <pre><code>Search student
+→ Sign in
+→ Export attendance CSV
+→ Analyze with Python
+→ Summarize teacher comment with AI
+→ Show Student Learning Profile
+→ Explain human review</code></pre>
+      </div>
+      <div class="lesson-section checklist" id="finalChecklist">
+        <h3>Final Submission Checklist</h3>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    CSAA AI Student Project · Self-learning website prototype
+  </footer>
+
+  <script>
+    const lessons = [
+      {
+        id: "w1l1",
+        week: "Week 1",
+        title: "What Problem Are We Solving?",
+        time: "30 min",
+        goal: "Understand that AI projects should start from a real education-management problem.",
+        concepts: ["real operation", "attendance", "student support", "human review"],
+        why: "If there is no real problem, AI does not know what to solve.",
+        activity: "Read the summer camp arrival scenario and draw the operation flow.",
+        example: "Student arrives → Search student → Show classroom → Sign in → Record time → Sign out → Export data",
+        task: "Create a flowchart of the sign-in/out process.",
+        check: ["Includes sign in", "Includes sign out", "Includes attendance record", "Mentions future analysis"]
+      },
+      {
+        id: "w1l2",
+        week: "Week 1",
+        title: "What Data Should We Collect?",
+        time: "35 min",
+        goal: "Turn a real-world action into structured data fields.",
+        concepts: ["row", "column", "record", "field", "student_id"],
+        why: "AI cannot analyze a real action until the action becomes clean data.",
+        activity: "Break one attendance story into fields.",
+        example: "Emma Chen signed in on 2026-07-06 at 09:04 in Room 2.",
+        task: "Design fields for attendance.csv.",
+        check: ["student_id exists", "date exists", "room exists", "sign_in_time exists", "status exists"]
+      },
+      {
+        id: "w1l3",
+        week: "Week 1",
+        title: "Try the Sign-in/out Demo",
+        time: "40 min",
+        goal: "Experience data collection through a simple form and connect it to Python basics.",
+        concepts: ["web form", "string input", "dictionary/JSON", "CSV record", "file output"],
+        why: "Students should see that a button click is really input, string matching, status logic, and a saved data record.",
+        activity: "Search a student, sign in, sign out, then explain the Python steps behind it.",
+        example: 'name = first_name.strip().lower() + " " + last_name.strip().lower()',
+        task: "Record one complete sign-in/out test and describe which fields should be written to CSV.",
+        check: ["Student can be found", "Name input is cleaned", "Room is shown", "Sign in/out works", "CSV record exists"]
+      },
+      {
+        id: "w2l4",
+        week: "Week 2",
+        title: "What Is an API?",
+        time: "40 min",
+        goal: "Understand request, response, endpoint, and JSON.",
+        concepts: ["API", "request", "response", "JSON", "dictionary key/value"],
+        why: "APIs connect the web page, backend, database, and AI tools.",
+        activity: "Read a search API example and label each JSON field.",
+        example: '{ "student_name": "Emma Chen", "room": "Room 2", "status": "not_arrived" }',
+        task: "Explain what student_name, room, and status mean.",
+        check: ["Can explain request", "Can explain response", "Can identify JSON key", "Can identify JSON value"]
+      },
+      {
+        id: "w2l5",
+        week: "Week 2",
+        title: "From CSV to Database",
+        time: "45 min",
+        goal: "Understand why structured databases are useful.",
+        concepts: ["CSV", "read/write file", "database", "table", "primary key", "foreign key"],
+        why: "CSV is easy to share; a database is better for searching and connecting records.",
+        activity: "Compare CSV fields with database table fields.",
+        example: "student_id connects attendance records to a student.",
+        task: "Write three simple SQL questions.",
+        check: ["Query one student's records", "Count records by student", "Count records by date"]
+      },
+      {
+        id: "w2l6",
+        week: "Week 2",
+        title: "Python Reads Attendance Data",
+        time: "60 min",
+        goal: "Use Python and pandas to clean CSV data, calculate statistics, and create charts.",
+        concepts: ["Python", "pandas", "DataFrame", "data cleaning", "groupby", "bar chart"],
+        why: "Before AI, students need to use data analysis to discover patterns and define useful features.",
+        activity: "Read attendance.csv, clean text fields, calculate status counts, and chart absence rate by room.",
+        example: 'df["status"] = df["status"].str.strip().str.lower()',
+        task: "Calculate total records, signed in, signed out, absent, absence rate, and create one chart.",
+        check: ["Notebook runs", "CSV loads", "Text is cleaned", "Counts are correct", "One chart is created"]
+      },
+      {
+        id: "w3l7",
+        week: "Week 3",
+        title: "Structured Data vs Teacher Comments",
+        time: "40 min",
+        goal: "Understand why teacher comments are useful for AI summary.",
+        concepts: ["structured data", "unstructured text", "teacher comment", "learning evidence"],
+        why: "AI is especially useful for turning unstructured text into clear summaries.",
+        activity: "Manually extract mastered, needs_review, and next_step from comments.",
+        example: "Student understands loops but needs more practice with debugging.",
+        task: "Label three teacher comments by hand.",
+        check: ["Mastered skill found", "Needs review found", "Next step written", "Language is parent-friendly"]
+      },
+      {
+        id: "w3l8",
+        week: "Week 3",
+        title: "AI Prompt for Comment Summary",
+        time: "60 min",
+        goal: "Use OpenAI API or ChatGPT to summarize teacher comments into JSON.",
+        concepts: ["prompt", "JSON output", "parent-friendly summary", "human review"],
+        why: "AI output is easier to use when it follows a structured format.",
+        activity: "Use the prompt template to summarize three comments.",
+        example: '{ "mastered": ["loops"], "needs_review": ["debugging"], "next_step": "Practice debugging." }',
+        task: "Generate three AI summary JSON outputs.",
+        check: ["Output is JSON", "Includes mastered", "Includes needs_review", "Includes parent_summary"]
+      },
+      {
+        id: "w3l9",
+        week: "Week 3",
+        title: "Build a Student Learning Profile",
+        time: "60 min",
+        goal: "Combine attendance analysis and AI comment summary into one profile.",
+        concepts: ["profile", "attendance summary", "makeup status", "learning tags", "support suggestion"],
+        why: "A profile is the place where data becomes useful for teachers and administrators.",
+        activity: "Fill in the student profile template.",
+        example: "Attendance: 8/10 attended; Needs Review: debugging; Next Step: debugging practice.",
+        task: "Create one complete Student Learning Profile.",
+        check: ["Has student name", "Has attendance summary", "Has AI summary", "Has human review note"]
+      },
+      {
+        id: "w4l10",
+        week: "Week 4",
+        title: "Support Prediction Mini-Challenge",
+        time: "75 min",
+        goal: "Turn the project into a Titanic-style supervised learning exercise.",
+        concepts: ["feature", "label", "baseline", "train/test split", "precision", "recall"],
+        why: "A competition-style AI project needs a clear prediction target and measurable results.",
+        activity: "Create a simple needs_support label from attendance and comment tags, then compare a rule baseline with a simple model.",
+        example: "features: absence_rate, makeup_count, needs_review_count; label: needs_support",
+        task: "Build a tiny support-prediction experiment and explain whether the model is useful.",
+        check: ["Features are defined", "Label is defined", "Baseline exists", "One metric is reported"]
+      },
+      {
+        id: "w4l11",
+        week: "Week 4",
+        title: "Build a Simple Dashboard",
+        time: "75 min",
+        goal: "Display the Student Learning Profile in a simple dashboard.",
+        concepts: ["dashboard", "Streamlit", "metric", "chart", "profile card"],
+        why: "AI results become useful only when people can understand and use them.",
+        activity: "Use Streamlit or a provided template to show one student profile.",
+        example: "Student Name, Attendance Rate, AI Summary, Support Risk, Next Step",
+        task: "Build a dashboard page with at least four sections.",
+        check: ["Shows student name", "Shows attendance rate", "Shows AI summary", "Shows next step"]
+      },
+      {
+        id: "w4l12",
+        week: "Week 4",
+        title: "Responsible AI",
+        time: "40 min",
+        goal: "Explain privacy, human review, and safe AI language.",
+        concepts: ["privacy", "bias", "human review", "sensitive data", "parent-facing language"],
+        why: "AI suggestions can be wrong, so teachers and administrators must review them.",
+        activity: "Write three responsible AI rules for the project.",
+        example: "AI provides suggestions, but final decisions should be reviewed by teachers.",
+        task: "Add a responsible AI section to the dashboard or PPT.",
+        check: ["Mentions anonymized data", "Mentions human review", "Avoids negative labeling"]
+      },
+      {
+        id: "w4l13",
+        week: "Week 4",
+        title: "Final Presentation",
+        time: "90 min",
+        goal: "Prepare a clear competition presentation and demo.",
+        concepts: ["problem", "data", "analysis", "AI summary", "dashboard", "responsible AI"],
+        why: "A good AI project must be explainable to people who did not build it.",
+        activity: "Create 5-8 slides and practice a 3-minute demo.",
+        example: "Problem → Data Collection → Python Analysis → AI Summary → Student Profile → Human Review",
+        task: "Prepare final slides and demo script.",
+        check: ["Slides are complete", "Demo works", "Every teammate speaks", "Responsible AI is included"]
+      }
+    ];
+
+    const lessonDetails = {
+      w1l1: {
+        steps: [
+          "Describe the real arrival and dismissal workflow in plain language.",
+          "Separate human actions from system actions.",
+          "Mark where data is created, checked, edited, and reviewed."
+        ],
+        practice: "Draw the workflow twice: one version for staff, one version for the computer system.",
+        deliverable: "One sign-in/out flowchart with at least six steps and one human review point.",
+        reflection: "Which step is most likely to create wrong data, and how could the system reduce that risk?",
+        links: [
+          {
+            label: "draw.io Flowchart Tool",
+            url: "https://app.diagrams.net/",
+            note: "Best match for this lesson title because students need to draw the sign-in/out operation flow."
+          },
+          {
+            label: "Lucidchart Flowchart Symbols Guide",
+            url: "https://www.lucidchart.com/pages/flowchart-symbols-meaning-explained",
+            note: "Use this only to understand decision boxes, process boxes, and start/end points in the workflow."
+          },
+          {
+            label: "Code.org AI for Oceans",
+            url: "https://code.org/oceans",
+            note: "A short AI activity for discussing how human choices and data rules affect AI behavior."
+          },
+          {
+            label: "Google Teachable Machine",
+            url: "https://teachablemachine.withgoogle.com/",
+            note: "Use as a no-code AI comparison: examples become labels, similar to attendance actions becoming records."
+          }
+        ]
+      },
+      w1l2: {
+        steps: [
+          "Read one attendance story and underline every piece of information.",
+          "Convert each underlined detail into a field name.",
+          "Decide which fields should be required and which fields can be optional."
+        ],
+        practice: "Create three sample rows for attendance.csv using anonymized student examples.",
+        deliverable: "A field list for attendance.csv with field name, meaning, example value, and required/not required.",
+        reflection: "What data should not be collected because it is unnecessary or too sensitive?",
+        links: [
+          {
+            label: "Python CSV Documentation",
+            url: "https://docs.python.org/3/library/csv.html",
+            note: "Most relevant for understanding why attendance data is stored as rows and columns."
+          },
+          {
+            label: "Google Sheets CSV Import Help",
+            url: "https://support.google.com/docs/answer/40608",
+            note: "Useful when students want to open attendance.csv and inspect the field design visually."
+          },
+          {
+            label: "Kaggle Learn Intro to Programming",
+            url: "https://www.kaggle.com/learn/intro-to-programming",
+            note: "Good beginner bridge from field names and values to code variables and simple data structures."
+          }
+        ]
+      },
+      w1l3: {
+        steps: [
+          "Run through a student search using first name and last name.",
+          "Explain how string cleaning helps the system find a match.",
+          "Trace what happens after sign in and after sign out."
+        ],
+        practice: "Test three input cases: correct spelling, extra spaces, and different capitalization.",
+        deliverable: "A short test report showing input, expected result, actual result, and saved CSV fields.",
+        reflection: "What should the system do when two students have similar names?",
+        links: [
+          {
+            label: "Python Official Tutorial: Strings",
+            url: "https://docs.python.org/3/tutorial/introduction.html#strings",
+            note: "Directly supports name cleanup with strip, lower, and string comparison ideas."
+          },
+          {
+            label: "Python Official Tutorial: Dictionaries",
+            url: "https://docs.python.org/3/tutorial/datastructures.html#dictionaries",
+            note: "Matches the lesson because a student record can be represented as key/value data."
+          },
+          {
+            label: "W3Schools Python String Methods",
+            url: "https://www.w3schools.com/python/python_ref_string.asp",
+            note: "Quick reference for string methods students can use in the sign-in/out practice script."
+          },
+          {
+            label: "Kaggle Learn Python",
+            url: "https://www.kaggle.com/learn/python",
+            note: "Competition-style notebook practice for students ready to strengthen Python after the demo."
+          },
+          {
+            label: "Kaggle Competitions",
+            url: "https://www.kaggle.com/competitions",
+            note: "Use as a future reference to see how datasets, metrics, notebooks, and submissions work."
+          }
+        ]
+      },
+      w2l4: {
+        steps: [
+          "Identify the endpoint, request data, response data, and status message.",
+          "Compare JSON key/value pairs with Python dictionaries.",
+          "Explain one success response and one error response."
+        ],
+        practice: "Open the mock API files and annotate each field with a short meaning.",
+        deliverable: "A one-page API explanation with search, sign in, sign out, and attendance summary examples.",
+        reflection: "Why is a mock API safer than connecting student projects directly to production data?"
+      },
+      w2l5: {
+        steps: [
+          "Compare a CSV file, a table, and a database.",
+          "Connect student records to attendance records using student_id.",
+          "Write questions that a database should be able to answer quickly."
+        ],
+        practice: "Design two tables: students and attendance. Add primary key and foreign key labels.",
+        deliverable: "A simple database sketch plus three SQL-style questions.",
+        reflection: "When is CSV good enough, and when does the project need a database?"
+      },
+      w2l6: {
+        steps: [
+          "Load attendance.csv and inspect the first rows.",
+          "Clean text fields and convert time/date fields where needed.",
+          "Calculate counts, rates, and one grouped metric."
+        ],
+        practice: "Create a chart that helps a teacher understand attendance behavior.",
+        deliverable: "A notebook or script that prints attendance statistics and saves one chart.",
+        reflection: "Which metric is useful for student support, and which metric could be misleading?"
+      },
+      w3l7: {
+        steps: [
+          "Separate facts, opinions, and next-step suggestions in teacher comments.",
+          "Label evidence as mastered, needs_review, or next_step.",
+          "Rewrite one comment into parent-friendly language."
+        ],
+        practice: "Manually label three comments before asking AI to summarize them.",
+        deliverable: "A labeled comment table with original comment, tags, evidence, and rewritten summary.",
+        reflection: "What information should a teacher review before a summary is shown to parents?"
+      },
+      w3l8: {
+        steps: [
+          "Write a prompt that defines role, task, input, output format, and safety rules.",
+          "Ask for structured JSON so the output can be used by a dashboard.",
+          "Check whether the AI added unsupported claims."
+        ],
+        practice: "Run the same comment through two prompt versions and compare the output quality.",
+        deliverable: "Three AI summary JSON examples plus a short evaluation note.",
+        reflection: "What should happen if the AI output is not valid JSON or sounds too negative?"
+      },
+      w3l9: {
+        steps: [
+          "Combine attendance statistics with teacher comment summaries.",
+          "Choose the fields that belong in a Student Learning Profile.",
+          "Add a human review note and a next-step recommendation."
+        ],
+        practice: "Build one profile for a demo student using only anonymized data.",
+        deliverable: "A Student Learning Profile with attendance, learning strengths, needs review, next step, and review status.",
+        reflection: "How can the profile help a teacher without labeling a student unfairly?"
+      },
+      w4l10: {
+        steps: [
+          "Define a simple needs_support label from attendance and comment tags.",
+          "Create features such as absence_rate and needs_review_count.",
+          "Compare a rule baseline with a simple model or scoring rule."
+        ],
+        practice: "Test whether your rule catches students who need follow-up without over-warning.",
+        deliverable: "A mini experiment with features, label, baseline, metric, and conclusion.",
+        reflection: "Which mistake is worse here: missing a student who needs help, or flagging too many students?"
+      },
+      w4l11: {
+        steps: [
+          "Choose the dashboard sections a staff member needs first.",
+          "Show key metrics before detailed text.",
+          "Add one chart and one AI summary area."
+        ],
+        practice: "Build or sketch a dashboard with student selector, metrics, chart, profile, and review status.",
+        deliverable: "A working or wireframed dashboard that can support the final demo.",
+        reflection: "What should be editable by humans before the profile is shared?"
+      },
+      w4l12: {
+        steps: [
+          "List privacy rules for student data and demo data.",
+          "Identify places where bias or wrong interpretation could happen.",
+          "Write human review language for the dashboard and final PPT."
+        ],
+        practice: "Rewrite three risky AI statements into safer, evidence-based language.",
+        deliverable: "A responsible AI statement with privacy, human review, and limitation notes.",
+        reflection: "How do we explain that AI supports decisions but does not make final decisions?"
+      },
+      w4l13: {
+        steps: [
+          "Tell the story from real operation to data to AI support.",
+          "Show the demo in the same order as the system workflow.",
+          "Assign each teammate a clear speaking part."
+        ],
+        practice: "Run a 3-minute rehearsal and record where the explanation is confusing.",
+        deliverable: "A 5-8 slide deck, demo script, final dashboard, and team speaking plan.",
+        reflection: "What is the strongest evidence that this project solves a real problem?"
+      }
+    };
+
+    const finalItems = [
+      "Sign-in/out demo or workflow",
+      "attendance.csv",
+      "teacher_comments.csv",
+      "Python analysis notebook",
+      "Support prediction mini-challenge",
+      "AI comment summary JSON",
+      "Student Learning Profile dashboard",
+      "Responsible AI statement",
+      "5-8 slide English presentation",
+      "3-minute demo script"
+    ];
+
+    function progressKey(id) {
+      return "ai_bootcamp_" + id;
+    }
+
+    function renderLessonList() {
+      const list = document.getElementById("lessonList");
+      list.innerHTML = lessons.map((lesson, index) => `
+        <button class="lesson-button ${index === 0 ? "active" : ""}" data-lesson="${lesson.id}">
+          <strong>${lesson.week}</strong><br />
+          ${lesson.title}
+        </button>
+      `).join("");
+
+      list.querySelectorAll("button").forEach(button => {
+        button.addEventListener("click", () => {
+          list.querySelectorAll("button").forEach(item => item.classList.remove("active"));
+          button.classList.add("active");
+          renderLesson(button.dataset.lesson);
+        });
+      });
+    }
+
+    function renderLesson(id) {
+      const lesson = lessons.find(item => item.id === id) || lessons[0];
+      const content = document.getElementById("lessonContent");
+      const detail = lessonDetails[lesson.id];
+      const checked = localStorage.getItem(progressKey(lesson.id)) === "1";
+
+      content.innerHTML = `
+        <div class="lesson-meta">
+          <span class="pill">${lesson.week}</span>
+          <span class="pill green">${lesson.time}</span>
+          <span class="pill orange">Self-learning</span>
+        </div>
+        <h2>${lesson.title}</h2>
+        <p class="muted">${lesson.goal}</p>
+
+        ${detail.links ? `
+          <div class="lesson-section">
+            <h3>Suggested Links for This Lesson</h3>
+            <div class="lesson-links">
+              ${detail.links.map(link => `
+                <div class="lesson-link">
+                  <a href="${link.url}" target="_blank" rel="noopener">${link.label}</a>
+                  <p class="muted">${link.note}</p>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        ` : ""}
+
+        <div class="lesson-section">
+          <h3>Why It Matters</h3>
+          <p>${lesson.why}</p>
+        </div>
+
+        <div class="lesson-section">
+          <h3>Key Concepts</h3>
+          <div class="tag-row">
+            ${lesson.concepts.map(concept => `<span class="tag">${concept}</span>`).join("")}
+          </div>
+        </div>
+
+        <div class="lesson-section">
+          <h3>Step-by-Step Activity</h3>
+          <p>${lesson.activity}</p>
+          <pre><code>${escapeHtml(lesson.example)}</code></pre>
+        </div>
+
+        <div class="lesson-section">
+          <h3>Learning Steps</h3>
+          <div class="step-list">
+            ${detail.steps.map(step => `<div class="step-item"><span>${step}</span></div>`).join("")}
+          </div>
+        </div>
+
+        <div class="lesson-section">
+          <h3>Practice</h3>
+          <p>${detail.practice}</p>
+        </div>
+
+        <div class="lesson-section">
+          <h3>Your Task</h3>
+          <p>${lesson.task}</p>
+        </div>
+
+        <div class="lesson-section">
+          <h3>Deliverable</h3>
+          <p>${detail.deliverable}</p>
+        </div>
+
+        <div class="lesson-section">
+          <h3>Reflection Question</h3>
+          <p>${detail.reflection}</p>
+        </div>
+
+        <div class="lesson-section checklist">
+          <h3>Check Your Work</h3>
+          ${lesson.check.map((item, index) => `
+            <label>
+              <input type="checkbox" />
+              <span>${item}</span>
+            </label>
+          `).join("")}
+        </div>
+
+        <div class="lesson-section">
+          <label>
+            <input id="completeLesson" type="checkbox" ${checked ? "checked" : ""} />
+            Mark this lesson as completed
+          </label>
+          <div class="button-row">
+            <button class="btn" id="saveProgress">Save progress</button>
+            <button class="btn secondary" id="resetProgress">Reset this lesson</button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("saveProgress").addEventListener("click", () => {
+        const isDone = document.getElementById("completeLesson").checked;
+        localStorage.setItem(progressKey(lesson.id), isDone ? "1" : "0");
+        alert("Progress saved.");
+      });
+
+      document.getElementById("resetProgress").addEventListener("click", () => {
+        localStorage.removeItem(progressKey(lesson.id));
+        renderLesson(lesson.id);
+      });
+    }
+
+    function renderFinalChecklist() {
+      const box = document.getElementById("finalChecklist");
+      box.innerHTML += finalItems.map((item, index) => `
+        <label>
+          <input type="checkbox" />
+          <span>${item}</span>
+        </label>
+      `).join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    renderLessonList();
+    renderLesson(lessons[0].id);
+    renderFinalChecklist();
+  </script>
+</body>
+</html>

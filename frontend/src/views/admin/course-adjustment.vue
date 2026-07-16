@@ -116,6 +116,7 @@
       title="Confirm Makeup Schedule"
       ok-text="Schedule"
       cancel-text="Close"
+      :confirm-loading="scheduleModal.saving"
       @ok="submitConfirmSchedule"
     >
       <div class="review-form">
@@ -192,6 +193,7 @@ const scheduleModal = reactive({
   options: [] as any[],
   selectedValue: '',
   adminNote: '',
+  saving: false,
 });
 
 onMounted(() => {
@@ -334,10 +336,14 @@ const openConfirmSchedule = (record: any) => {
   ];
   scheduleModal.selectedValue = scheduleModal.options.length > 0 ? optionKey(scheduleModal.options[0]) : '';
   scheduleModal.adminNote = '';
+  scheduleModal.saving = false;
   scheduleModal.visible = true;
 };
 
 const submitConfirmSchedule = () => {
+  if (scheduleModal.saving) {
+    return;
+  }
   if (!scheduleModal.record) {
     message.error('Please select a makeup eligibility');
     return;
@@ -347,6 +353,7 @@ const submitConfirmSchedule = () => {
     return;
   }
   const [classId, date] = scheduleModal.selectedValue.split('|');
+  scheduleModal.saving = true;
   confirmMakeupScheduleApi({
     id: scheduleModal.record.id,
     class_id: classId,
@@ -362,6 +369,8 @@ const submitConfirmSchedule = () => {
     getDataList();
   }).catch((err) => {
     message.error(err.msg || 'Schedule failed');
+  }).finally(() => {
+    scheduleModal.saving = false;
   });
 };
 

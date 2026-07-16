@@ -391,16 +391,26 @@ def confirm_makeup_schedule_api(request):
     except Thing.DoesNotExist:
         return APIResponse(code=1, msg='Class option does not exist')
 
+    target_date = parse_date(class_date)
+    if not target_date:
+        return APIResponse(code=1, msg='Invalid makeup date')
+
+    if adjustment.status == 'completed':
+        is_same_schedule = (
+            str(adjustment.selected_target_class_id or '') == str(class_id)
+            and adjustment.selected_target_date == target_date
+        )
+        if is_same_schedule:
+            serializer = CourseAdjustmentSerializer(adjustment)
+            return APIResponse(code=0, msg='Makeup class already scheduled', data=serializer.data)
+        return APIResponse(code=1, msg='This makeup eligibility has already been scheduled')
+
     if adjustment.status != 'makeup_available':
         return APIResponse(code=1, msg='Only available makeup eligibility can be scheduled')
 
     selected = _find_saved_recommendation(adjustment, class_id, class_date)
     if not selected:
         return APIResponse(code=1, msg='Please choose one of the recommended makeup options')
-
-    target_date = parse_date(class_date)
-    if not target_date:
-        return APIResponse(code=1, msg='Invalid makeup date')
 
     current_recommendation = next(
         (
