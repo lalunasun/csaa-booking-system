@@ -101,6 +101,8 @@ urlpatterns = [
     path('admin/campCheckin/summary', views.camp_checkin.summary),
     path('admin/campCheckin/import', views.camp_checkin.import_enrollments),
     path('admin/campCheckin/export', views.camp_checkin.export_attendance),
+    path('admin/campCheckin/waivers', views.camp_checkin.waiver_list),
+    path('admin/campCheckin/waivers/export', views.camp_checkin.export_waivers),
 
     # ----------------------------Summer camp check-in/out-------------------------------------------
     path('campCheckin/search', views.camp_checkin.search),

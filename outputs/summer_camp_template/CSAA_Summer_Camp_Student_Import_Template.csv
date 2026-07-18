@@ -1,0 +1,5 @@
+parent_username,parent_first_name,parent_last_name,parent_phone,parent_email,student_first_name,student_last_name,student_preferred_name,age,gender,camp_week_code,camp_week_name,start_date,end_date,default_room
+parent_001,Alex,Chen,4165550101,alex.chen@example.com,Emma,Chen,Emma,8,Female,SC2026-W1,2026 Summer Camp Week 1,7/6/2026,7/10/2026,Room1
+parent_002,Jordan,Wang,4165550102,jordan.wang@example.com,Liam,Wang,Liam,9,Male,SC2026-W1,2026 Summer Camp Week 1,7/6/2026,7/10/2026,Room2
+parent_001,Alex,Chen,4165550101,alex.chen@example.com,Emma1,Chen,Emma,8,Female,SC2026-W1,2026 Summer Camp Week 1,7/17/2026,7/18/2026,Room1
+parent_002,Alex,Chen,4165550102,alex.chen@example.com,Emma2,Chen,Emma,9,Female,SC2026-W2,2027 Summer Camp Week 1,7/17/2026,7/18/2026,Room2

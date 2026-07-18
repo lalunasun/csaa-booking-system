@@ -103,6 +103,9 @@
               <span v-if="student.attendance.sign_out_time">
                 Signed out {{ formatTime(student.attendance.sign_out_time) }}
               </span>
+              <span v-if="student.attendance.late_pickup" class="late-pickup">
+                Late pickup {{ student.attendance.late_pickup_minutes }} min - charge may apply
+              </span>
               <span v-if="!student.attendance.sign_in_time && !student.attendance.sign_out_time">
                 Not signed in yet
               </span>
@@ -319,9 +322,12 @@ const signOut = async (student: any) => {
   try {
     const res = await signOutApi({ student_id: student.student_id, date: today });
     const timeText = res.data?.sign_out_time ? formatTime(res.data.sign_out_time) : dayjs().format('h:mm A');
+    const lateText = res.data?.late_pickup
+      ? ` - Late pickup ${res.data.late_pickup_minutes || 0} min after 4:30 PM. Late pickup charge may apply.`
+      : '';
     completeAction(
       `${student.student_name} signed out`,
-      `Pickup recorded at ${timeText}`
+      `Pickup recorded at ${timeText}${lateText}`
     );
   } catch (error: any) {
     notice.value = error?.msg || 'Sign out failed';
@@ -549,6 +555,10 @@ const normalizeRoom = (value: string) => String(value || '').replace(/\s+/g, '')
 
 .waiver-needed {
   color: #b45309;
+}
+
+.late-pickup {
+  color: #b91c1c;
 }
 
 .waiver-copy {

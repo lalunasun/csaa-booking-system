@@ -16,6 +16,7 @@ from CSAA.models import CampAttendance, CampEnrollment, CampWaiver, Child, Order
 
 CAMP_START_HOUR = 9
 CAMP_END_HOUR = 16
+CAMP_LATE_PICKUP_TIME = datetime.time(16, 30)
 CAMP_WAIVER_VERSION = '2026-summer-v1'
 
 
@@ -89,13 +90,23 @@ def _serialize_record(record):
             'status': 'not_arrived',
             'sign_in_time': None,
             'sign_out_time': None,
+            'late_pickup': False,
+            'late_pickup_minutes': 0,
             'note': '',
         }
+    late_pickup = False
+    late_pickup_minutes = 0
+    if record.sign_out_time and record.sign_out_time.time() > CAMP_LATE_PICKUP_TIME:
+        late_pickup = True
+        cutoff = datetime.datetime.combine(record.sign_out_time.date(), CAMP_LATE_PICKUP_TIME)
+        late_pickup_minutes = max(1, int((record.sign_out_time.replace(tzinfo=None) - cutoff).total_seconds() // 60))
     return {
         'id': record.id,
         'status': record.status,
         'sign_in_time': record.sign_in_time.isoformat() if record.sign_in_time else None,
         'sign_out_time': record.sign_out_time.isoformat() if record.sign_out_time else None,
+        'late_pickup': late_pickup,
+        'late_pickup_minutes': late_pickup_minutes,
         'note': record.note,
     }
 
@@ -108,6 +119,40 @@ def _has_waiver(student_id, term_id):
         term_id=term_id,
         waiver_version=CAMP_WAIVER_VERSION,
     ).exists()
+
+
+def _waiver_queryset(target_date=None):
+    queryset = CampWaiver.objects.all()
+    if target_date:
+        queryset = queryset.filter(
+            term__expect_time__date__lte=target_date,
+            term__return_time__date__gte=target_date,
+        )
+    return queryset.select_related(
+        'student',
+        'student__parent',
+        'parent',
+        'term',
+    ).order_by('-signed_time', 'student__name')
+
+
+def _serialize_waiver(waiver):
+    student = waiver.student
+    parent = waiver.parent or (student.parent if student else None)
+    return {
+        'id': waiver.id,
+        'student_id': waiver.student_id,
+        'student_name': student.name if student else '',
+        'parent_name': (parent.nickname or parent.username) if parent else '',
+        'parent_username': parent.username if parent else '',
+        'parent_phone': parent.mobile if parent else '',
+        'term_id': waiver.term_id,
+        'term_title': waiver.term.title if waiver.term else '',
+        'signer_name': waiver.signer_name,
+        'waiver_version': waiver.waiver_version,
+        'signed_time': waiver.signed_time.isoformat() if waiver.signed_time else '',
+        'signed_ip': waiver.signed_ip,
+    }
 
 
 def _student_items(target_date):
@@ -200,6 +245,11 @@ def _parse_import_date(row, *keys):
             parsed = parse_date(value)
             if parsed:
                 return parsed
+            for date_format in ['%m/%d/%Y', '%-m/%-d/%Y', '%m/%d/%y']:
+                try:
+                    return datetime.datetime.strptime(value, date_format).date()
+                except ValueError:
+                    continue
     return None
 
 
@@ -361,7 +411,7 @@ def export_attendance(request):
         return APIResponse(code=1, msg='Invalid date')
 
     response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
-    response['Content-Disposition'] = f'attachment; filename="camp_checkin_{target_date.isoformat()}.csv"'
+    response['Content-Disposition'] = f'attachment; filename="camp_signin_{target_date.isoformat()}.csv"'
     response.write('\ufeff')
     writer = csv.writer(response)
     writer.writerow([
@@ -374,6 +424,8 @@ def export_attendance(request):
         'Status',
         'Sign In Time',
         'Sign Out Time',
+        'Late Pickup After 4:30 PM',
+        'Late Pickup Minutes',
         'Notes',
     ])
     for item in _student_items(target_date):
@@ -388,7 +440,67 @@ def export_attendance(request):
             attendance.get('status') or 'not_arrived',
             attendance.get('sign_in_time') or '',
             attendance.get('sign_out_time') or '',
+            'Yes' if attendance.get('late_pickup') else 'No',
+            attendance.get('late_pickup_minutes') or 0,
             attendance.get('note') or '',
+        ])
+    return response
+
+
+@api_view(['GET'])
+@authentication_classes([AdminTokenAuthtication])
+def waiver_list(request):
+    target_date = _parse_date(request.GET.get('date'))
+    date_filter = str(request.GET.get('date_filter') or '').strip().lower() in ['1', 'true', 'yes']
+    if date_filter and target_date is None:
+        return APIResponse(code=1, msg='Invalid date')
+
+    waivers = [_serialize_waiver(waiver) for waiver in _waiver_queryset(target_date if date_filter else None)]
+    return APIResponse(code=0, msg='OK', data={
+        'date': target_date.isoformat() if target_date else '',
+        'date_filter': date_filter,
+        'waivers': waivers,
+    })
+
+
+@api_view(['GET'])
+@authentication_classes([AdminTokenAuthtication])
+def export_waivers(request):
+    target_date = _parse_date(request.GET.get('date'))
+    date_filter = str(request.GET.get('date_filter') or '').strip().lower() in ['1', 'true', 'yes']
+    if date_filter and target_date is None:
+        return APIResponse(code=1, msg='Invalid date')
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    filename_date = target_date.isoformat() if date_filter and target_date else 'all'
+    response['Content-Disposition'] = f'attachment; filename="camp_waivers_{filename_date}.csv"'
+    response.write('\ufeff')
+    writer = csv.writer(response)
+    writer.writerow([
+        'Date',
+        'Student Name',
+        'Parent Name',
+        'Parent Username',
+        'Parent Phone',
+        'Camp Week',
+        'Signer Name',
+        'Waiver Version',
+        'Signed Time',
+        'Signed IP',
+    ])
+    for waiver in _waiver_queryset(target_date if date_filter else None):
+        item = _serialize_waiver(waiver)
+        writer.writerow([
+            filename_date if date_filter else '',
+            item.get('student_name') or '',
+            item.get('parent_name') or '',
+            item.get('parent_username') or '',
+            item.get('parent_phone') or '',
+            item.get('term_title') or '',
+            item.get('signer_name') or '',
+            item.get('waiver_version') or '',
+            item.get('signed_time') or '',
+            item.get('signed_ip') or '',
         ])
     return response
 

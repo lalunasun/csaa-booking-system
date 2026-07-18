@@ -6,8 +6,8 @@
         <p>{{ selectedDate.format('dddd, MMM D, YYYY') }} · 9:00 AM - 4:00 PM</p>
       </div>
       <div class="head-actions">
-        <a-date-picker v-model:value="selectedDate" :allow-clear="false" @change="loadSummary" />
-        <a-button :loading="loading" @click="loadSummary">Refresh</a-button>
+        <a-date-picker v-model:value="selectedDate" :allow-clear="false" @change="loadAll" />
+        <a-button :loading="loading || waiverLoading" @click="loadAll">Refresh</a-button>
         <a-upload
           :show-upload-list="false"
           :before-upload="beforeImport"
@@ -58,11 +58,35 @@
               <div class="time-col">
                 <span>{{ student.attendance.sign_in_time ? formatTime(student.attendance.sign_in_time) : '-' }}</span>
                 <span>{{ student.attendance.sign_out_time ? formatTime(student.attendance.sign_out_time) : '-' }}</span>
+                <a-tag v-if="student.attendance.late_pickup" color="red">
+                  Late pickup {{ student.attendance.late_pickup_minutes }} min
+                </a-tag>
               </div>
             </div>
           </div>
         </article>
         <a-empty v-if="!rooms.length" description="No camp students on this date" />
+      </section>
+
+      <section class="waiver-panel">
+        <header>
+          <div>
+            <h2>Waiver records</h2>
+            <p>All signed parent waiver confirmations.</p>
+          </div>
+          <div class="waiver-actions">
+            <span>{{ waivers.length }} signed</span>
+            <a-button :loading="waiverExporting" @click="exportWaiverCsv">Export Waivers</a-button>
+          </div>
+        </header>
+        <a-table
+          size="small"
+          row-key="id"
+          :loading="waiverLoading"
+          :columns="waiverColumns"
+          :data-source="waivers"
+          :pagination="{ pageSize: 5 }"
+        />
       </section>
     </a-spin>
   </div>
@@ -72,14 +96,23 @@
 import { computed, onMounted, ref } from 'vue';
 import dayjs, { Dayjs } from 'dayjs';
 import { message } from 'ant-design-vue';
-import { exportAttendanceApi, importEnrollmentsApi, summaryApi } from '/@/api/camp-checkin';
+import {
+  exportAttendanceApi,
+  exportWaiversApi,
+  importEnrollmentsApi,
+  summaryApi,
+  waiverListApi,
+} from '/@/api/camp-checkin';
 
 const selectedDate = ref<Dayjs>(dayjs());
 const loading = ref(false);
 const importing = ref(false);
 const exporting = ref(false);
+const waiverLoading = ref(false);
+const waiverExporting = ref(false);
 const counts = ref<Record<string, number>>({});
 const rooms = ref<any[]>([]);
+const waivers = ref<any[]>([]);
 
 const signedInTotal = computed(() =>
   (counts.value.signed_in || 0) + (counts.value.late || 0) + (counts.value.early_pickup || 0) + (counts.value.signed_out || 0)
@@ -89,8 +122,12 @@ const signedOutTotal = computed(() =>
 );
 
 onMounted(() => {
-  loadSummary();
+  loadAll();
 });
+
+const loadAll = async () => {
+  await Promise.all([loadSummary(), loadWaivers()]);
+};
 
 const loadSummary = async () => {
   loading.value = true;
@@ -102,6 +139,18 @@ const loadSummary = async () => {
     message.error(error?.msg || 'Failed to load camp sign-in summary');
   } finally {
     loading.value = false;
+  }
+};
+
+const loadWaivers = async () => {
+  waiverLoading.value = true;
+  try {
+    const res = await waiverListApi({});
+    waivers.value = res.data?.waivers || [];
+  } catch (error: any) {
+    message.error(error?.msg || 'Failed to load waiver records');
+  } finally {
+    waiverLoading.value = false;
   }
 };
 
@@ -122,7 +171,7 @@ const beforeImport = async (file: File) => {
     if (data.error_count > 0) {
       console.log('Camp import errors', data.errors || []);
     }
-    await loadSummary();
+    await loadAll();
   } catch (error: any) {
     message.error(error?.msg || 'Failed to import camp enrollments');
   } finally {
@@ -151,6 +200,41 @@ const exportCsv = async () => {
     exporting.value = false;
   }
 };
+
+const exportWaiverCsv = async () => {
+  waiverExporting.value = true;
+  try {
+    const res = await exportWaiversApi({});
+    const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'camp_waivers_all.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error: any) {
+    message.error(error?.msg || 'Failed to export waiver records');
+  } finally {
+    waiverExporting.value = false;
+  }
+};
+
+const waiverColumns = [
+  { title: 'Student', dataIndex: 'student_name', key: 'student_name' },
+  { title: 'Parent', dataIndex: 'parent_name', key: 'parent_name' },
+  { title: 'Phone', dataIndex: 'parent_phone', key: 'parent_phone' },
+  { title: 'Signer', dataIndex: 'signer_name', key: 'signer_name' },
+  { title: 'Camp Week', dataIndex: 'term_title', key: 'term_title' },
+  { title: 'Waiver Version', dataIndex: 'waiver_version', key: 'waiver_version' },
+  {
+    title: 'Signed Time',
+    dataIndex: 'signed_time',
+    key: 'signed_time',
+    customRender: ({ text }: any) => (text ? dayjs(text).format('YYYY-MM-DD h:mm A') : '-'),
+  },
+];
 
 const statusText = (status: string) => ({
   not_arrived: 'Not arrived',
@@ -238,6 +322,42 @@ const classLine = (student: any) =>
   gap: 14px;
 }
 
+.waiver-panel {
+  margin-top: 16px;
+  border: 1px solid #d8e1ec;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.waiver-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e4eaf1;
+  background: #f6f8fb;
+}
+
+.waiver-panel h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.waiver-panel p {
+  margin: 4px 0 0;
+  color: #64748b;
+}
+
+.waiver-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+  font-weight: 700;
+}
+
 .room-card {
   border: 1px solid #d8e1ec;
   border-radius: 8px;
@@ -288,11 +408,13 @@ const classLine = (student: any) =>
 
 @media (max-width: 900px) {
   .page-head,
-  .student-row {
+  .student-row,
+  .waiver-panel > header {
     grid-template-columns: 1fr;
   }
 
-  .page-head {
+  .page-head,
+  .waiver-panel > header {
     align-items: stretch;
   }
 
